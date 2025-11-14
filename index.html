@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2D跳一跳小游戏</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f8f9fa;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+
+        .game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #gameCanvas {
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            background-color: #ffffff;
+            max-width: 100%;
+            max-height: 100%;
+
+        }
+
+        .game-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(255, 255, 255, 0.9);
+            z-index: 10;
+            transition: opacity 0.3s ease;
+        }
+
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            background-color: #4f46e5;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+        }
+
+        .btn:hover {
+            background-color: #4338ca;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+        }
+
+        .score-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 24px;
+            font-weight: bold;
+            color: #4f46e5;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 5;
+        }
+
+        .power-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 10px;
+            background-color: rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+            overflow: hidden;
+            z-index: 5;
+        }
+
+        .power-fill {
+            height: 100%;
+            background-color: #4f46e5;
+            width: 0;
+            transition: width 0.1s ease;
+        }
+
+        .game-title {
+            font-size: 48px;
+            font-weight: bold;
+            color: #4f46e5;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .final-score {
+            font-size: 36px;
+            font-weight: bold;
+            color: #4f46e5;
+            margin-bottom: 20px;
+        }
+
+        .instruction {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 40px;
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .difficulty-badge {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background-color: #ef4444;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+            z-index: 5;
+        }
+
+        .stage-indicator {
+            position: absolute;
+            top: 60px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            color: #4f46e5;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 5;
+            transition: all 0.3s ease;
+        }
+
+        .stage-indicator.hard-mode {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+        }
+
+        .spike-stats {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            color: #4f46e5;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 5;
+        }
+        
+        .time-display {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 24px;
+            font-weight: bold;
+            color: #4f46e5;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 8px 16px;
+            border-radius: 20px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            z-index: 5;
+        }
+
+        @media (max-width: 768px) {
+            .game-title {
+                font-size: 36px;
+            }
+
+            .final-score {
+                font-size: 28px;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                font-size: 16px;
+            }
+
+            .score-display {
+                font-size: 20px;
+                top: 10px;
+                right: 10px;
+            }
+
+            .difficulty-badge {
+                font-size: 12px;
+                top: 10px;
+                left: 10px;
+            }
+
+            .stage-indicator {
+                font-size: 12px;
+                top: 45px;
+                left: 10px;
+            }
+
+            .spike-stats {
+                font-size: 12px;
+                top: 80px;
+                left: 10px;
+            }
+            
+            .time-display {
+                font-size: 20px;
+                top: 10px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="800" height="450"></canvas>
+
+        <!-- 开始界面 -->
+        <div id="startScreen" class="game-overlay">
+            <h1 class="game-title">跳一跳</h1>
+            <p class="instruction">点击并按住屏幕蓄力，松开后角色跳跃。躲避地刺，尽可能跳得更远获取高分！<br><span
+                    class="text-indigo-500 font-medium"></span></p>
+            <button id="startButton" class="btn">开始游戏</button>
+        </div>
+
+        <!-- 结束界面 -->
+        <div id="endScreen" class="game-overlay hidden">
+            <h2 class="final-score">最终得分: <span id="finalScore">0</span></h2>
+            <button id="restartButton" class="btn">再来一次</button>
+        </div>
+
+        <!-- 分数显示 -->
+        <div class="score-display">
+            分数: <span id="score">0</span>
+        </div>
+        
+        <!-- 倒计时显示 -->
+        <div class="time-display">
+            时间: <span id="timeLeft">60</span>秒
+        </div>
+
+        <!-- 蓄力条 -->
+        <div class="power-bar">
+            <div id="powerFill" class="power-fill"></div>
+        </div>
+
+        <!-- 难度标识 -->
+        <div class="difficulty-badge">
+            <i class="fas fa-exclamation-triangle mr-1"></i> 增强前期难度
+        </div>
+
+        <!-- 阶段指示器 -->
+        <div id="stageIndicator" class="stage-indicator">
+            <i class="fas fa-road mr-1"></i> 增强压力模式
+        </div>
+
+        <!-- 地刺碰撞统计 -->
+        <div id="spikeStats" class="spike-stats">
+            碰撞次数: <span id="spikeHitCount">0</span> | 当前弹退距离: <span id="currentKnockback">100%</span>
+        </div>
+    </div>
+
+    <script>
+        // 游戏常量
+        const GAME_WIDTH = 800;
+        const GAME_HEIGHT = 450;
+        const GROUND_HEIGHT = 47;
+        const PLAYER_WIDTH = 60;
+        const PLAYER_HEIGHT = 80;
+        const SPIKE_WIDTH = 20;
+        const SPIKE_HEIGHT = 20;
+        const GRAVITY = 0.6;
+        const JUMP_POWER = 18; // 增加跳跃启动速度
+        const MAX_CHARGE_TIME = 800; // 最大蓄力时间1.5秒
+        const KNOCKBACK_DISTANCE = PLAYER_WIDTH * 0.2; // 减小地刺碰撞后向后弹退距离，使游戏更简单
+        const SPIKE_SAFE_ZONE = 100; // 初始角色位置前方安全区域（无地刺）
+        const SPIKE_SPAWN_RANGE = 1000; // 每次生成地刺的范围
+        const SPIKE_GENERATION_LEFT_BOUND = 150; // 地刺生成左边界（视口右侧100px）
+        const SPIKE_GENERATION_RIGHT_BOUND = 10000; // 地刺生成右边界（视口右侧1000px）
+
+        // 动态地刺分布相关常量
+        const STAGE_BOUNDARY = 10000; // 分界点：5000px
+        // 前半段(≤1500px)参数 - 增强压力模式（生成概率提高20%）
+        const SPIKE_MIN_DISTANCE_EARLY = PLAYER_WIDTH * 1.5; // 前半段最小间距：1.5倍角色宽度（保持不变）
+        const SPIKE_RANDOM_OFFSET_EARLY = 20; // 前半段随机偏移：±20px（保持不变）
+        const SPIKE_SPAWN_CHANCE_EARLY = 2; // 前半段生成概率：54%（提高20%，原为45%）
+        // 后半段(>1500px)参数 - 基础模式（生成概率保持10%）
+        const SPIKE_MIN_DISTANCE_LATE = PLAYER_WIDTH * 2.5; // 后半段最小间距：2.5倍角色宽度（增加变化）
+        const SPIKE_RANDOM_OFFSET_LATE = 40; // 后半段随机偏移：±40px（增加两倍，使位置更随机）
+        const SPIKE_SPAWN_CHANCE_LATE = 0.15; // 后半段生成概率：15%（略微提高）
+
+        // 游戏状态
+        let score = 0;
+        let comboCount = 0;
+        let isJumping = false;
+        let isCharging = false;
+        let chargeStartTime = 0;
+        let gameStarted = false;
+        let gameOver = false;
+        let spikes = [];
+        
+        // 倒计时相关
+        const MAX_TIME = 60; // 最大游戏时间（秒）
+        let timeLeft = MAX_TIME;
+        let gameStartTime = 0;
+        let backgroundImg = null;
+        let floorImg = null;
+        let spikeHitCount = 0; // 地刺碰撞次数
+
+        // 相机对象 - 视角跟随机制
+        const camera = {
+            x: 0, // 相机的x坐标偏移
+            isFollowing: false, // 是否正在跟随角色
+            targetX: 0, // 相机的目标x坐标
+            followSpeed: 0.1 // 相机跟随的平滑速度
+        };
+
+        // 玩家对象 - 添加变形相关属性
+        const player = {
+            x: 100,
+            y: GAME_HEIGHT - PLAYER_HEIGHT - GROUND_HEIGHT,
+            width: PLAYER_WIDTH,
+            height: PLAYER_HEIGHT,
+            originalWidth: PLAYER_WIDTH,
+            originalHeight: PLAYER_HEIGHT,
+            scaleX: 1, // X轴缩放比例
+            scaleY: 1, // Y轴缩放比例
+            velocityX: 0,
+            velocityY: 0,
+            isOnGround: true,
+            isKnockedBack: false, // 是否正在被弹退
+            knockbackTimer: 0, // 弹退计时器
+            sprite: {
+                run: null,
+                jump: null,
+                current: null,
+                frameCount: 0,
+                frameIndex: 0,
+                frameDelay: 5
+            }
+        };
+
+        // 获取DOM元素
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 优化Canvas渲染质量，支持高清屏幕
+        function setupHighDpiCanvas() {
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+
+            // 设置Canvas实际尺寸（考虑设备像素比）
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+
+            // 缩放Canvas上下文
+            ctx.scale(dpr, dpr);
+
+            // 设置CSS尺寸以保持显示大小一致
+            canvas.style.width = rect.width + 'px';
+            canvas.style.height = rect.height + 'px';
+
+            // 提高渲染质量
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+        }
+
+        // 初始化高清Canvas设置
+        setupHighDpiCanvas();
+
+        // 监听窗口大小变化，重新调整Canvas设置
+        window.addEventListener('resize', setupHighDpiCanvas);
+        const startScreen = document.getElementById('startScreen');
+        const endScreen = document.getElementById('endScreen');
+        const startButton = document.getElementById('startButton');
+        const restartButton = document.getElementById('restartButton');
+        const scoreDisplay = document.getElementById('score');
+        const finalScoreDisplay = document.getElementById('finalScore');
+        const powerBar = document.getElementById('powerFill');
+        const stageIndicator = document.getElementById('stageIndicator');
+        const spikeHitCountDisplay = document.getElementById('spikeHitCount');
+        const currentKnockbackDisplay = document.getElementById('currentKnockback');
+        const timeLeftDisplay = document.getElementById('timeLeft');
+
+        // 加载图片资源
+        function loadImages() {
+            return new Promise((resolve, reject) => {
+                const runImg = new Image();
+                const jumpImg = new Image();
+                const bgImg = new Image();
+                const floorImg = new Image();
+                const spikeImg = new Image(); // 地刺图片
+
+                runImg.src = './run.png';
+                jumpImg.src = './jump.png';
+                bgImg.src = './back.jpg';
+                floorImg.src = './floor.png';
+                spikeImg.src = './ci.png'; // 地刺图片路径
+
+                let imagesLoaded = 0;
+                const totalImages = 5;
+
+                const checkLoaded = () => {
+                    imagesLoaded++;
+                    if (imagesLoaded === totalImages) {
+                        resolve();
+                    }
+                };
+
+                runImg.onload = () => {
+                    player.sprite.run = runImg;
+                    player.sprite.current = runImg;
+                    checkLoaded();
+                };
+
+                jumpImg.onload = () => {
+                    player.sprite.jump = jumpImg;
+                    checkLoaded();
+                };
+
+                bgImg.onload = () => {
+                    backgroundImg = bgImg;
+                    checkLoaded();
+                };
+
+                floorImg.onload = () => {
+                    window.floorImg = floorImg;
+                    checkLoaded();
+                };
+
+                spikeImg.onload = () => {
+                    window.spikeImg = spikeImg;
+                    checkLoaded();
+                };
+
+                runImg.onerror = reject;
+                jumpImg.onerror = reject;
+                bgImg.onerror = () => {
+                    console.warn('Failed to load background image, using default background');
+                    checkLoaded();
+                };
+                floorImg.onerror = () => {
+                    console.warn('Failed to load floor image, using default color');
+                    checkLoaded();
+                };
+                spikeImg.onerror = () => {
+                    console.warn('Failed to load spike image, using default triangle');
+                    checkLoaded();
+                };
+            });
+        }
+
+        // 初始化游戏
+        function initGame() {
+            // 重置游戏状态
+            score = 0;
+            comboCount = 0;
+            spikeHitCount = 0; // 重置地刺碰撞次数
+            isJumping = false;
+            isCharging = false;
+            gameStarted = true;
+            gameOver = false;
+            spikes = [];
+            
+            // 重置倒计时
+            timeLeft = MAX_TIME;
+            gameStartTime = Date.now();
+            timeLeftDisplay.textContent = timeLeft;
+
+            // 重置相机状态
+            camera.x = 0;
+            camera.targetX = 0; // 移除isFollowing标志，相机始终跟随
+
+            // 更新显示
+            scoreDisplay.textContent = score;
+            spikeHitCountDisplay.textContent = spikeHitCount;
+            updateKnockbackDisplay();
+
+            // 重置阶段指示器
+            stageIndicator.innerHTML = '<i class="fas fa-road mr-1"></i> 增强压力模式';
+            stageIndicator.classList.remove('hard-mode');
+
+            // 初始化玩家位置和变形状态
+            player.x = 100;
+            player.y = GAME_HEIGHT - PLAYER_HEIGHT - 200;
+            player.velocityX = 0;
+            player.velocityY = 0;
+            player.isOnGround = true;
+            player.isKnockedBack = false;
+            player.knockbackTimer = 0;
+            player.scaleX = 1;
+            player.scaleY = 1;
+
+            // 创建初始地刺
+            createInitialSpikes();
+
+            // 隐藏开始和结束界面
+            startScreen.classList.add('hidden');
+            endScreen.classList.add('hidden');
+        }
+
+        // 创建初始地刺
+        function createInitialSpikes() {
+            // 清空现有地刺
+            spikes = [];
+
+            // 初始生成范围：从安全区域外开始，延伸到视口右侧两倍距离
+            const startX = player.x + SPIKE_SAFE_ZONE;
+            const endX = startX + SPIKE_SPAWN_RANGE;
+
+            // 使用动态分布算法生成地刺
+            generateDynamicSpikes(startX, endX);
+        }
+
+        // 添加新地刺
+        function addNewSpikes() {
+            // 计算视口右侧边界
+            const viewportRight = camera.x + GAME_WIDTH;
+
+            // 计算地刺生成的左右边界
+            const spawnLeftBound = viewportRight + SPIKE_GENERATION_LEFT_BOUND;
+            const spawnRightBound = viewportRight + SPIKE_GENERATION_RIGHT_BOUND;
+
+            // 找出当前所有地刺中最右侧的位置
+            const farthestX = spikes.length > 0 ? Math.max(...spikes.map(s => s.x)) : 0;
+
+            // 如果最右地刺还没到达生成左边界，则在生成范围内添加新地刺
+            if (farthestX < spawnRightBound) {
+                // 使用动态分布算法生成地刺
+                generateDynamicSpikes(Math.max(farthestX, spawnLeftBound), spawnRightBound);
+            }
+
+            // 清理超出视口左侧过多的地刺，优化性能
+            spikes = spikes.filter(spike => {
+                // 只保留在视口左侧1000px内且在生成右边界内的地刺
+                return spike.x > camera.x - GAME_WIDTH && spike.x < spawnRightBound;
+            });
+
+            // 更新阶段指示器
+            updateStageIndicator();
+        }
+
+        // 动态地刺分布生成算法
+        function generateDynamicSpikes(startX, endX) {
+            // 计算从startX到endX的总距离
+            const totalDistance = endX - startX;
+
+            // 如果距离过小，直接返回
+            if (totalDistance <= 0) return;
+
+            // 计算边界位置
+            const boundary = STAGE_BOUNDARY;
+
+            // 分两段生成地刺：前半段(≤1500px)和后半段(>1500px)
+            if (endX <= boundary) {
+                // 全部在前半段
+                generateSpikesInRange(startX, endX,
+                    SPIKE_MIN_DISTANCE_EARLY,
+                    SPIKE_RANDOM_OFFSET_EARLY,
+                    SPIKE_SPAWN_CHANCE_EARLY);
+            } else if (startX >= boundary) {
+                // 全部在后半段
+                generateSpikesInRange(startX, endX,
+                    SPIKE_MIN_DISTANCE_LATE,
+                    SPIKE_RANDOM_OFFSET_LATE,
+                    SPIKE_SPAWN_CHANCE_LATE);
+            } else {
+                // 跨越边界，分两段生成
+                generateSpikesInRange(startX, boundary,
+                    SPIKE_MIN_DISTANCE_EARLY,
+                    SPIKE_RANDOM_OFFSET_EARLY,
+                    SPIKE_SPAWN_CHANCE_EARLY);
+                generateSpikesInRange(boundary, endX,
+                    SPIKE_MIN_DISTANCE_LATE,
+                    SPIKE_RANDOM_OFFSET_LATE,
+                    SPIKE_SPAWN_CHANCE_LATE);
+            }
+        }
+
+        // 在指定范围内生成地刺
+        function generateSpikesInRange(startX, endX, minDistance, randomOffset, spawnChance) {
+            // 计算当前位置，从起始位置开始
+            let currentX = startX;
+            
+            // 创建一个数组来记录最近几个地刺的间距，用于避免重复相同间距
+            const recentSpacings = [];
+            const MAX_RECENT_SPACING = 8; // 增加记录的间距数量到8个，提高检测相似性的能力
+            
+            // 使用当前时间作为随机种子的一部分，增强随机性
+            const timeSeed = Date.now() % 1000;
+            
+            // 生成一个基于位置的随机种子，增强随机性
+            const positionSeed = (Math.sin(startX * 0.001) + Math.cos(endX * 0.001)) * 1000;
+            
+            // 定义连刺生成参数
+            const multipleSpikeChance = 0.50; // 15%的概率生成连刺
+            const minSpikesInRow = 2; // 最少连续地刺数量
+            const maxSpikesInRow = 3; // 最多连续地刺数量
+            const spikeSpacing = PLAYER_WIDTH * 0.5; // 连续地刺之间的间距（略小于角色宽度）
+
+            // 持续生成地刺直到超出范围
+            while (currentX < endX) {
+                // 动态调整生成概率，加入更多随机性
+                // 为后半段增加更大的概率波动范围
+                const probabilityMultiplier = spawnChance < 0.5 ? 0.5 + Math.random() * 1.5 : 0.8 + Math.random() * 0.4;
+                const dynamicChance = spawnChance * probabilityMultiplier;
+                
+                // 随机决定是否在此位置生成地刺
+                if (Math.random() < dynamicChance) {
+                    // 检查是否生成连刺
+                    if (Math.random() < multipleSpikeChance) {
+                        // 确定连刺的数量
+                        const spikeCount = Math.floor(Math.random() * (maxSpikesInRow - minSpikesInRow + 1)) + minSpikesInRow;
+                        let canPlaceMultiple = true;
+                        
+                        // 检查是否有足够空间放置连续地刺
+                        for (let i = 0; i < spikeCount; i++) {
+                            const testX = currentX + i * spikeSpacing;
+                            // 检查是否超出范围或太接近现有地刺
+                            if (testX > endX || 
+                                spikes.some(spike => Math.abs(spike.x - testX) < minDistance * 0.7)) {
+                                canPlaceMultiple = false;
+                                break;
+                            }
+                        }
+                        
+                        if (canPlaceMultiple) {
+                            // 生成连续地刺
+                            for (let i = 0; i < spikeCount; i++) {
+                                // 为每个连续地刺添加小的随机偏移，但保持整体紧凑
+                                const smallOffset = (Math.random() - 0.5) * 10;
+                                const spikeX = currentX + i * spikeSpacing + smallOffset;
+                                
+                                spikes.push({
+                                    x: spikeX,
+                                    y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT
+                                });
+                            }
+                            
+                            // 更新当前位置，跳过整个连续地刺组
+                            currentX += (spikeCount - 1) * spikeSpacing;
+                        } else {
+                            // 如果无法放置连刺，放置单个地刺
+                            placeSingleSpike(currentX, timeSeed, positionSeed, randomOffset, spawnChance, minDistance);
+                        }
+                    } else {
+                        // 放置单个地刺
+                        placeSingleSpike(currentX, timeSeed, positionSeed, randomOffset, spawnChance, minDistance);
+                    }
+                }
+                
+                // 辅助函数：放置单个地刺
+                function placeSingleSpike(x, timeSeed, positionSeed, randomOffset, spawnChance, minDistance) {
+                    // 使用多个种子和复杂的随机算法计算偏移
+                    const timeFactor = (Math.sin(timeSeed * 0.01 + Math.random()) + 1) * 0.5;
+                    const positionFactor = (Math.cos(positionSeed * 0.001 + x * 0.002) + 1) * 0.5;
+                    const randomFactor = Math.sin(Math.random() * Math.PI) * 0.6 + 0.7; // 0.1-1.3之间的随机值，增加变化
+                    
+                    // 为后半段增加额外的随机偏移
+                    const extraVariation = spawnChance < 0.5 ? Math.random() * randomOffset : 0;
+                    const finalX = x + (Math.random() - 0.5) * 2 * randomOffset * randomFactor * timeFactor * positionFactor + extraVariation;
+                    
+                    // 检查与相邻地刺的距离是否满足最小间距要求
+                    const isTooClose = spikes.some(spike => 
+                        Math.abs(spike.x - finalX) < minDistance * 0.9 // 稍微放宽最小间距检查，允许更多变化
+                    );
+                    
+                    // 如果不满足最小间距要求，则跳过此位置
+                    if (!isTooClose) {
+                        // 生成单个地刺
+                        spikes.push({
+                            x: finalX,
+                            y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT
+                        });
+                    }
+                }
+
+                // 计算下一个地刺的基础位置，使用更复杂的随机间距算法
+                let randomSpacing;
+
+                // 生成初始随机间距，使用更强大的随机算法
+                let similarSpacingExists = false;
+                let attempts = 0; // 限制尝试次数，避免无限循环
+                const MAX_ATTEMPTS = 15; // 增加尝试次数以找到更合适的间距
+
+                do {
+                    attempts++;
+
+                    // 为后半段使用更广泛的基础变化范围
+                    const baseVariation = spawnChance < 0.5 ?
+                        0.5 + Math.random() * 4.5 : // 后半段：0.5-5.0倍范围，大幅增加变化
+                        0.8 + Math.random() * 2.7;  // 前半段：保持0.8-3.5倍范围
+
+                    // 添加更多随机因子
+                    const random1 = Math.random();
+                    const random2 = Math.random();
+                    const random3 = Math.random();
+                    const random4 = Math.random(); // 增加一个随机因子
+
+                    // 使用时间和位置种子增强随机性
+                    const seedFactor = (Math.sin(timeSeed * 0.01 + currentX * 0.001) + 1) * 0.5;
+                    const posSeedFactor = (Math.cos(positionSeed * 0.001 + currentX * 0.002) + 1) * 0.5;
+
+                    // 复杂的随机计算，确保更自然的分布
+                    const jitter = (random1 * random2 - 0.25) * minDistance * 0.8; // 增加抖动幅度
+                    const trendFactor = 1 + (random3 - 0.5) * 0.6; // 增加趋势变化范围
+
+                    // 添加位置相关的变化因子
+                    const positionVariation = 1 + (Math.sin(currentX * 0.003) * 0.3 * random4);
+
+                    // 组合所有随机因子
+                    randomSpacing = minDistance * baseVariation * trendFactor * positionVariation + jitter * seedFactor * posSeedFactor;
+
+                    // 确保间距在合理范围内，但允许更大的变化
+                    randomSpacing = Math.max(minDistance * 0.7, Math.min(randomSpacing, minDistance * 6)); // 后半段允许更大的间距范围
+
+                    // 检查最近是否有相似的间距，更严格的检查
+                    similarSpacingExists = false;
+                    if (recentSpacings.length > 0) {
+                        // 计算平均间距和标准差
+                        const avgSpacing = recentSpacings.reduce((sum, spacing) => sum + spacing, 0) / recentSpacings.length;
+                        const variance = recentSpacings.reduce((sum, spacing) => sum + Math.pow(spacing - avgSpacing, 2), 0) / recentSpacings.length;
+                        const stdDev = Math.sqrt(variance);
+
+                        // 为后半段使用更宽松的相似性阈值，允许更大变化
+                        const absoluteThreshold = spawnChance < 0.5 ? minDistance * 0.1 : minDistance * 0.15;
+                        const relativeThreshold = spawnChance < 0.5 ? 0.15 : 0.1;
+
+                        // 检查是否与最近任何间距过于相似
+                        similarSpacingExists = recentSpacings.some(spacing =>
+                            // 绝对差异检查，使用动态阈值
+                            Math.abs(spacing - randomSpacing) < absoluteThreshold ||
+                            // 相对差异检查，考虑标准差
+                            (stdDev > 0 && Math.abs((spacing - randomSpacing) / avgSpacing) < relativeThreshold)
+                        );
+
+                        // 额外检查：避免连续的模式（例如大小大小）
+                        if (!similarSpacingExists && recentSpacings.length >= 3) {
+                            // 检查是否形成了规律模式
+                            const isPatternForming = Math.abs(recentSpacings[recentSpacings.length - 1] - randomSpacing) < minDistance * 0.2 &&
+                                Math.abs(recentSpacings[recentSpacings.length - 2] - recentSpacings[recentSpacings.length - 1]) < minDistance * 0.2;
+                            if (isPatternForming) {
+                                similarSpacingExists = true;
+                            }
+                        }
+                    }
+                } while (similarSpacingExists && attempts < MAX_ATTEMPTS);
+
+                // 无论如何都要继续，避免在多次尝试后仍找不到合适间距时卡住
+
+                // 更新最近间距记录
+                recentSpacings.push(randomSpacing);
+                if (recentSpacings.length > MAX_RECENT_SPACING) {
+                    recentSpacings.shift(); // 移除最旧的间距记录
+                }
+
+                currentX += randomSpacing;
+            }
+
+            // 确保生成范围的末尾也有机会生成地刺
+            if (Math.random() < spawnChance) {
+                const finalX = endX - SPIKE_WIDTH;
+                const isTooClose = spikes.some(spike =>
+                    Math.abs(spike.x - finalX) < minDistance
+                );
+
+                if (!isTooClose) {
+                    spikes.push({
+                        x: finalX,
+                        y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT
+                    });
+                }
+            }
+        }
+
+        // 更新阶段指示器
+        function updateStageIndicator() {
+            // 获取角色当前的最右位置（考虑相机偏移）
+            const playerRightmost = Math.max(player.x, camera.x + GAME_WIDTH / 2);
+
+            if (playerRightmost > STAGE_BOUNDARY) {
+                // 后半段模式
+                stageIndicator.innerHTML = '<i class="fas fa-road mr-1"></i> 稀疏模式';
+                stageIndicator.classList.add('hard-mode');
+            } else {
+                // 前半段模式
+                stageIndicator.innerHTML = '<i class="fas fa-road mr-1"></i> 增强压力模式';
+                stageIndicator.classList.remove('hard-mode');
+            }
+        }
+
+        // 绘制游戏 - 支持相机视角和角色变形
+        function drawGame() {
+            // 清空画布
+            ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+            // 绘制背景图片 - 固定不动，不随相机移动
+            if (backgroundImg) {
+                ctx.drawImage(backgroundImg, 0, 0, GAME_WIDTH, GAME_HEIGHT);
+            } else {
+                // 如果背景图片未加载，使用默认背景色
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+            }
+
+            // 绘制连续地面
+            const groundY = GAME_HEIGHT - GROUND_HEIGHT;
+
+            if (window.floorImg) {
+                // 使用地面图片
+                const floorWidth = window.floorImg.width || 100;
+                const floorHeight = window.floorImg.height || 50;
+                const startSegment = Math.floor(camera.x / floorWidth);
+
+                for (let i = startSegment - 1; i < startSegment + Math.ceil(GAME_WIDTH / floorWidth) + 1; i++) {
+                    const x = i * floorWidth - camera.x;
+                    // 将地面向上移动以显示完整，调整offset值可以上下微调位置
+                    const offset = 300; // 向上移动的像素数
+                    ctx.drawImage(window.floorImg, x, groundY - offset, floorWidth, GROUND_HEIGHT + offset);
+                }
+            } else {
+                // 如果地面图片未加载，使用默认背景色
+                ctx.fillStyle = '#4f46e5';
+
+                // 绘制足够的地面块以覆盖视口
+                const groundSegmentWidth = 100;
+                const startSegment = Math.floor(camera.x / groundSegmentWidth);
+
+                for (let i = startSegment - 1; i < startSegment + Math.ceil(GAME_WIDTH / groundSegmentWidth) + 1; i++) {
+                    const x = i * groundSegmentWidth - camera.x;
+                    ctx.fillRect(x, groundY, groundSegmentWidth, GROUND_HEIGHT);
+                }
+            }
+
+            // 绘制地刺
+            spikes.forEach(spike => {
+                const screenX = spike.x - camera.x;
+                if (screenX > -SPIKE_WIDTH && screenX < GAME_WIDTH) {
+                    if (window.spikeImg) {
+                        // 使用地刺图片
+                        ctx.drawImage(window.spikeImg, screenX, spike.y, SPIKE_WIDTH, SPIKE_HEIGHT);
+                    } else {
+                        // 如果地刺图片未加载，使用默认三角形
+                        ctx.fillStyle = '#ef4444';
+                        ctx.beginPath();
+                        ctx.moveTo(screenX, spike.y + SPIKE_HEIGHT);
+                        ctx.lineTo(screenX + SPIKE_WIDTH / 2, spike.y);
+                        ctx.lineTo(screenX + SPIKE_WIDTH, spike.y + SPIKE_HEIGHT);
+                        ctx.closePath();
+                        ctx.fill();
+                    }
+                }
+            });
+
+            // 绘制玩家 - 应用变形
+            ctx.save();
+
+            // 应用角色变形
+            const playerScreenX = player.x - camera.x;
+            const scaledWidth = player.width * player.scaleX;
+            const scaledHeight = player.height * player.scaleY;
+            const offsetX = (player.width - scaledWidth) / 2;
+            // 计算Y轴偏移，确保角色底部在变形时保持不动
+            const offsetY = (player.height - scaledHeight); // 当角色被压缩时，向上移动以保持底部位置不变
+
+            // 绘制角色图片 - 应用相机偏移和变形
+            if (player.sprite.current) {
+                ctx.drawImage(
+                    player.sprite.current,
+                    playerScreenX + offsetX,
+                    player.y + offsetY,
+                    scaledWidth,
+                    scaledHeight
+                );
+            } else {
+                // 如果图片未加载完成，绘制占位矩形
+                ctx.fillStyle = '#4f46e5';
+                ctx.fillRect(
+                    playerScreenX + offsetX,
+                    player.y + offsetY,
+                    scaledWidth,
+                    scaledHeight
+                );
+            }
+
+            ctx.restore();
+        }
+
+        // 更新游戏状态 - 支持相机视角跟随
+        function updateGame() {
+            if (!gameStarted || gameOver) return;
+            
+            // 更新倒计时
+            const currentTime = Date.now();
+            const elapsedTime = Math.floor((currentTime - gameStartTime) / 1000);
+            const newTimeLeft = Math.max(MAX_TIME - elapsedTime, 0);
+            
+            if (newTimeLeft !== timeLeft) {
+                timeLeft = newTimeLeft;
+                timeLeftDisplay.textContent = timeLeft;
+                
+                // 倒计时结束，游戏结束
+                if (timeLeft === 0) {
+                    endGame();
+                    return;
+                }
+            }
+
+            // 应用重力
+            player.velocityY += GRAVITY;
+            player.y += player.velocityY;
+
+            // 检查是否在地面上
+            const groundY = GAME_HEIGHT - PLAYER_HEIGHT - 32;
+            if (player.y >= groundY) {
+                player.y = groundY;
+                player.velocityY = 0;
+                player.isOnGround = true;
+                isJumping = false;
+
+                // 落地后仍然保持相机跟随
+                // 相机目标位置应该略领先于角色，以提供更好的视觉体验
+                const targetLead = 200; // 相机领先角色的像素数
+                camera.targetX = Math.max(player.x - targetLead, 0);
+            } else {
+                player.isOnGround = false;
+            }
+
+            // 处理弹退逻辑
+            if (player.isKnockedBack) {
+                player.knockbackTimer -= 16; // 假设每帧约16ms
+                if (player.knockbackTimer <= 0) {
+                    player.isKnockedBack = false;
+                    player.velocityX = 0; // 弹退后角色保持静止状态
+                } else {
+                    // 弹退过程中持续向后移动
+                    player.x += player.velocityX;
+                }
+            } else if (!player.isOnGround) {
+                // 角色水平移动 - 仅在跳跃时应用水平速度
+                player.x += player.velocityX;
+
+                // 在跳跃过程中更新相机目标位置
+                // 相机目标位置应该略领先于角色，以提供更好的视觉体验
+                const targetLead = 200; // 相机领先角色的像素数
+                camera.targetX = Math.max(player.x - targetLead, 0);
+            }
+
+            // 更新相机位置 - 实时跟随角色
+            // 使用平滑过渡更新相机位置
+            camera.x += (camera.targetX - camera.x) * camera.followSpeed;
+
+            // 确保相机不会回退到角色后面
+            if (camera.x > player.x - 100) {
+                camera.x = player.x - 100;
+            }
+
+            // 添加新地刺 - 使用动态分布算法
+            addNewSpikes();
+
+            // 基于角色与起始位置的距离更新分数
+            // 起始位置为x=100，计算相对距离
+            const distanceFromStart = Math.max(0, player.x - 100);
+
+            // 使用距离平方计算分数，使分数随距离增长得更快
+            // 添加一个系数来调整分数增长速率
+            const distanceScore = Math.floor(distanceFromStart * distanceFromStart * 0.0001);
+
+            if (distanceScore > score) {
+                score = distanceScore;
+                scoreDisplay.textContent = score;
+            }
+
+            // 检查地刺碰撞
+            // 只有在角色没有处于弹退状态时才检测碰撞，确保每次碰撞只计算一次
+            if (!player.isKnockedBack) {
+                spikes.forEach(spike => {
+                    if (
+                        player.x + player.width > spike.x &&
+                        player.x < spike.x + SPIKE_WIDTH &&
+                        player.y < spike.y + SPIKE_HEIGHT &&
+                        player.y + player.height > spike.y
+                    ) {
+                        // 触发惩罚机制
+                        applyPenalty();
+                    }
+                });
+            }
+
+            // 检查游戏结束条件
+            if (player.y > GAME_HEIGHT) {
+                endGame();
+                return;
+            }
+
+            // 角色动画
+            updatePlayerAnimation();
+
+            // 绘制游戏
+            drawGame();
+
+            // 继续游戏循环
+            requestAnimationFrame(updateGame);
+        }
+
+        // 更新玩家动画
+        function updatePlayerAnimation() {
+            if (isJumping || !player.isOnGround) {
+                player.sprite.current = player.sprite.jump;
+            } else {
+                player.sprite.current = player.sprite.run;
+
+                // 简单的帧动画
+                player.sprite.frameCount++;
+                if (player.sprite.frameCount >= player.sprite.frameDelay) {
+                    player.sprite.frameCount = 0;
+                    player.sprite.frameIndex = (player.sprite.frameIndex + 1) % 4; // 假设run.png有4帧
+                }
+            }
+        }
+
+        // 开始跳跃蓄力 - 实现角色压缩效果
+        function startJump() {
+            if (!gameStarted || gameOver || !player.isOnGround || player.isKnockedBack) return;
+
+            isCharging = true;
+            chargeStartTime = Date.now();
+
+            // 更新蓄力条和角色变形
+            updatePowerBarAndDeformation();
+        }
+
+        // 更新蓄力条和角色变形
+        function updatePowerBarAndDeformation() {
+            if (!isCharging) return;
+
+            const chargeTime = Date.now() - chargeStartTime;
+            const chargePercentage = Math.min(chargeTime / MAX_CHARGE_TIME, 1);
+
+            // 更新蓄力条
+            powerBar.style.width = `${chargePercentage * 100}%`;
+
+            // 计算角色变形 - Y轴压缩(60%-100%)，X轴轻微拉伸
+            player.scaleY = 1 - (chargePercentage * 0.2); // 0.4是最大压缩比例(40%)
+            player.scaleX = 1 + (chargePercentage * 0.2); // 0.2是最大拉伸比例(20%)
+
+            if (isCharging) {
+                requestAnimationFrame(updatePowerBarAndDeformation);
+            }
+        }
+
+        // 结束跳跃蓄力并执行跳跃 - 恢复角色原尺寸
+        function endJump() {
+            if (!isCharging || !player.isOnGround || player.isKnockedBack) return;
+
+            isCharging = false;
+            powerBar.style.width = '0%';
+
+            // 恢复角色原尺寸
+            player.scaleX = 1;
+            player.scaleY = 1;
+
+            const chargeTime = Date.now() - chargeStartTime;
+            const chargePercentage = Math.min(chargeTime / MAX_CHARGE_TIME, 1);
+
+            // 设置跳跃速度 - 使用更高的JUMP_POWER值提升启动速度
+            player.velocityY = -chargePercentage * JUMP_POWER; // 垂直速度
+            player.velocityX = chargePercentage * 5; // 水平速度
+
+            // 移除基础跳跃分数，完全基于角色与起始位置的距离计算分数
+
+            player.isJumping = true;
+            player.isOnGround = false;
+
+            // 开始跳跃时激活相机跟随
+            camera.isFollowing = true;
+        }
+
+        // 更新弹退距离显示
+        function updateKnockbackDisplay() {
+            const knockbackMultiplier = 1 + Math.min(0.1, spikeHitCount * 0.001);
+            const percentage = Math.round(knockbackMultiplier * 100);
+            currentKnockbackDisplay.textContent = percentage + '%';
+        }
+
+        // 应用惩罚机制
+        function applyPenalty() {
+            // 增加地刺碰撞次数
+            spikeHitCount++;
+
+            // 根据碰撞次数动态计算弹退距离，设置上限（最大为基础距离的3倍）
+            const baseKnockback = KNOCKBACK_DISTANCE;
+            const knockbackMultiplier = 1 + Math.min(0.1, spikeHitCount * 0.001); // 每次增加10%，最多增加200%
+            const currentKnockback = baseKnockback * knockbackMultiplier;
+
+            // 更新显示
+            spikeHitCountDisplay.textContent = spikeHitCount;
+            updateKnockbackDisplay();
+
+            // 开始弹退 - 确保只向左水平弹退，不向上弹起
+            player.isKnockedBack = true;
+            player.knockbackTimer = 150; // 弹退持续时间
+            player.velocityX = -currentKnockback / (player.knockbackTimer / 50); // 仅设置水平向左速度
+            player.velocityY = 0; // 确保垂直速度为0，不产生向上弹退效果
+
+
+            // 重置连击
+            comboCount = 0;
+        }
+
+        // 结束游戏
+        function endGame() {
+            gameOver = true;
+            finalScoreDisplay.textContent = score;
+            endScreen.classList.remove('hidden');
+        }
+
+        // 添加事件监听器
+        function setupEventListeners() {
+            // 鼠标事件
+            canvas.addEventListener('mousedown', startJump);
+            canvas.addEventListener('mouseup', endJump);
+
+            // 触摸事件（移动设备）
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                startJump();
+            });
+
+            canvas.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                endJump();
+            });
+
+            // 按钮事件
+            startButton.addEventListener('click', () => {
+                initGame();
+                updateGame();
+            });
+
+            restartButton.addEventListener('click', () => {
+                initGame();
+                updateGame();
+            });
+        }
+
+        // 启动游戏
+        async function startGame() {
+            try {
+                await loadImages();
+                setupEventListeners();
+                drawGame(); // 初始绘制
+            } catch (error) {
+                console.error('Failed to load game resources:', error);
+            }
+        }
+
+        // 开始游戏
+        startGame();
+    </script>
+</body>
+
+</html>
