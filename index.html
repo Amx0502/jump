@@ -8,9 +8,11 @@
     <style>
         body {
             font-family: 'Arial', sans-serif;
-            background-color: #f8f9fa;
+            background-color: #000;
             overflow: hidden;
             touch-action: manipulation;
+            margin: 0;
+            padding: 0;
         }
 
         .game-container {
@@ -20,15 +22,19 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            overflow: hidden;
         }
 
         #gameCanvas {
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 0;
+            box-shadow: none;
             background-color: #ffffff;
-            max-width: 100%;
-            max-height: 100%;
-
+            z-index: 1;
         }
 
         .game-overlay {
@@ -74,7 +80,7 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            font-size: 24px;
+            font-size: calc(16px + 1vw);
             font-weight: bold;
             color: #4f46e5;
             background-color: rgba(255, 255, 255, 0.8);
@@ -82,6 +88,7 @@
             border-radius: 20px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             z-index: 5;
+            max-width: 40%;
         }
 
         .power-bar {
@@ -89,7 +96,8 @@
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            width: 200px;
+            width: 60vw;
+            max-width: 400px;
             height: 10px;
             background-color: rgba(0, 0, 0, 0.1);
             border-radius: 5px;
@@ -135,15 +143,16 @@
             color: white;
             padding: 6px 12px;
             border-radius: 15px;
-            font-size: 14px;
+            font-size: calc(12px + 0.5vw);
             font-weight: bold;
             box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
             z-index: 5;
+            max-width: 40%;
         }
 
         .stage-indicator {
             position: absolute;
-            top: 60px;
+            top: 70px;
             left: 20px;
             background-color: rgba(255, 255, 255, 0.8);
             color: #4f46e5;
@@ -287,8 +296,8 @@
 
     <script>
         // 游戏常量
-        const GAME_WIDTH = 800;
-        const GAME_HEIGHT = 450;
+        let GAME_WIDTH = 800;
+        let GAME_HEIGHT = 450;
         const GROUND_HEIGHT = 47;
         const PLAYER_WIDTH = 60;
         const PLAYER_HEIGHT = 80;
@@ -369,25 +378,36 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
 
-        // 优化Canvas渲染质量，支持高清屏幕
+        // 优化Canvas渲染质量，支持全屏响应式布局
         function setupHighDpiCanvas() {
+            // 获取窗口尺寸
+            const windowWidth = window.innerWidth;
+            const windowHeight = window.innerHeight;
             const dpr = window.devicePixelRatio || 1;
-            const rect = canvas.getBoundingClientRect();
-
+            
+            // 更新游戏尺寸常量
+            GAME_WIDTH = windowWidth;
+            GAME_HEIGHT = windowHeight;
+            
             // 设置Canvas实际尺寸（考虑设备像素比）
-            canvas.width = rect.width * dpr;
-            canvas.height = rect.height * dpr;
-
+            canvas.width = windowWidth * dpr;
+            canvas.height = windowHeight * dpr;
+            
             // 缩放Canvas上下文
             ctx.scale(dpr, dpr);
-
+            
             // 设置CSS尺寸以保持显示大小一致
-            canvas.style.width = rect.width + 'px';
-            canvas.style.height = rect.height + 'px';
-
+            canvas.style.width = windowWidth + 'px';
+            canvas.style.height = windowHeight + 'px';
+            
             // 提高渲染质量
             ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
+            ctx.imageSmoothingQuality = window.innerWidth < 768 ? 'medium' : 'high'; // 移动端降低质量提高性能
+            
+            // 调整玩家位置以适应新尺寸
+            if (player) {
+                player.y = GAME_HEIGHT - PLAYER_HEIGHT - GROUND_HEIGHT;
+            }
         }
 
         // 初始化高清Canvas设置
@@ -658,7 +678,7 @@
                                 
                                 spikes.push({
                                     x: spikeX,
-                                    y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT
+                                    y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT - 166
                                 });
                             }
                             
@@ -695,7 +715,7 @@
                         // 生成单个地刺
                         spikes.push({
                             x: finalX,
-                            y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT
+                            y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT - 166
                         });
                     }
                 }
@@ -792,7 +812,7 @@
                 if (!isTooClose) {
                     spikes.push({
                         x: finalX,
-                        y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT
+                        y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT - 166
                     });
                 }
             }
@@ -821,7 +841,7 @@
 
             // 绘制背景图片 - 固定不动，不随相机移动
             if (backgroundImg) {
-                ctx.drawImage(backgroundImg, 0, 0, GAME_WIDTH, GAME_HEIGHT);
+                ctx.drawImage(backgroundImg, 0, 0, GAME_WIDTH, 700);
             } else {
                 // 如果背景图片未加载，使用默认背景色
                 ctx.fillStyle = '#ffffff';
@@ -840,7 +860,7 @@
                 for (let i = startSegment - 1; i < startSegment + Math.ceil(GAME_WIDTH / floorWidth) + 1; i++) {
                     const x = i * floorWidth - camera.x;
                     // 将地面向上移动以显示完整，调整offset值可以上下微调位置
-                    const offset = 300; // 向上移动的像素数
+                    const offset = 1500; // 向上移动的像素数
                     ctx.drawImage(window.floorImg, x, groundY - offset, floorWidth, GROUND_HEIGHT + offset);
                 }
             } else {
@@ -936,7 +956,7 @@
             player.y += player.velocityY;
 
             // 检查是否在地面上
-            const groundY = GAME_HEIGHT - PLAYER_HEIGHT - 32;
+            const groundY = GAME_HEIGHT - PLAYER_HEIGHT - 200;
             if (player.y >= groundY) {
                 player.y = groundY;
                 player.velocityY = 0;
@@ -971,14 +991,23 @@
                 camera.targetX = Math.max(player.x - targetLead, 0);
             }
 
-            // 更新相机位置 - 实时跟随角色
-            // 使用平滑过渡更新相机位置
-            camera.x += (camera.targetX - camera.x) * camera.followSpeed;
-
-            // 确保相机不会回退到角色后面
-            if (camera.x > player.x - 100) {
-                camera.x = player.x - 100;
+            // 所有设备都使用响应式相机跟随机制
+            const playerScreenX = player.x - camera.x;
+            const centerThreshold = window.innerWidth < 768 ? 80 : 150; // 移动设备使用更大的阈值
+            const centerTarget = GAME_WIDTH / 2 - player.width / 2;
+            
+            // 平滑相机跟随
+            if (Math.abs(playerScreenX - centerTarget) > centerThreshold) {
+                // 根据屏幕尺寸调整跟随速度
+                const followSpeed = window.innerWidth < 768 ? 0.2 : 0.1;
+                camera.x += (player.x - centerTarget - camera.x) * followSpeed;
+            } else {
+                // 微调以保持角色在理想位置
+                camera.x += (player.x - centerTarget - camera.x) * 0.05;
             }
+            
+            // 确保相机不会向左移动到负值
+            camera.x = Math.max(0, camera.x);
 
             // 添加新地刺 - 使用动态分布算法
             addNewSpikes();
@@ -1148,12 +1177,16 @@
 
             // 触摸事件（移动设备）
             canvas.addEventListener('touchstart', (e) => {
-                e.preventDefault();
+                if (e.cancelable) {
+                    e.preventDefault();
+                }
                 startJump();
             });
 
             canvas.addEventListener('touchend', (e) => {
-                e.preventDefault();
+                if (e.cancelable) {
+                    e.preventDefault();
+                }
                 endJump();
             });
 
