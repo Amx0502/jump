@@ -16,7 +16,14 @@ const dbConfig = {
     host: 'localhost',
     port: 3306,
     user: 'root',
-    password: 'toor'
+    password: 'toor',
+    connectionLimit: 10,
+    waitForConnections: true,
+    queueLimit: 0,
+    multipleStatements: true,
+    ssl: false,
+    charset: 'utf8mb4',
+    timezone: '+00:00' // UTC 时区
 };
 
 let pool = null;
@@ -40,9 +47,14 @@ async function initializeDatabase() {
         await connection.end();
         
         // 创建连接池，指定使用 jump_game 数据库
+        // 添加完整的连接参数，包括时区和字符编码设置
         pool = mysql.createPool({
             ...dbConfig,
-            database: 'jump_game'
+            database: 'jump_game',
+            // 确保所有连接参数都正确应用
+            connectTimeout: 10000,
+            acquireTimeout: 10000,
+            idleTimeout: 60000
         });
         
         // 创建表（如果不存在）
