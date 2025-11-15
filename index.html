@@ -340,6 +340,9 @@
         let backgroundImg = null;
         let floorImg = null;
         let spikeHitCount = 0; // 地刺碰撞次数
+        
+        // 音频相关
+        let jumpSound = null;
 
         // 相机对象 - 视角跟随机制
         const camera = {
@@ -427,7 +430,7 @@
         const currentKnockbackDisplay = document.getElementById('currentKnockback');
         const timeLeftDisplay = document.getElementById('timeLeft');
 
-        // 加载图片资源
+        // 加载游戏资源（图片和音频）
         function loadImages() {
             return new Promise((resolve, reject) => {
                 const runImg = new Image();
@@ -435,6 +438,14 @@
                 const bgImg = new Image();
                 const floorImg = new Image();
                 const spikeImg = new Image(); // 地刺图片
+                
+                // 加载音频
+                jumpSound = new Audio('./audio/jump.MP3');
+                jumpSound.volume = 0.5; // 设置音量
+                
+                // 加载地刺碰撞音效
+                spikeSound = new Audio('./audio/spike.MP3');
+                spikeSound.volume = 0.5; // 设置音量
 
                 runImg.src = './images/run.png';
                 jumpImg.src = './images/jump.png';
@@ -442,15 +453,29 @@
                 floorImg.src = './images/floor.png';
                 spikeImg.src = './images/ci.png'; // 地刺图片路径
 
-                let imagesLoaded = 0;
-                const totalImages = 5;
+                let resourcesLoaded = 0;
+                const totalResources = 7; // 5张图片 + 2个音频
 
                 const checkLoaded = () => {
-                    imagesLoaded++;
-                    if (imagesLoaded === totalImages) {
+                    resourcesLoaded++;
+                    if (resourcesLoaded === totalResources) {
                         resolve();
                     }
                 };
+                
+                // 音频加载处理
+                jumpSound.addEventListener('canplaythrough', checkLoaded, { once: true });
+                jumpSound.addEventListener('error', () => {
+                    console.warn('Failed to load jump sound, continuing without audio');
+                    checkLoaded(); // 即使音频加载失败也继续游戏
+                });
+                
+                // 地刺音效加载处理
+                spikeSound.addEventListener('canplaythrough', checkLoaded, { once: true });
+                spikeSound.addEventListener('error', () => {
+                    console.warn('Failed to load spike sound, continuing without audio');
+                    checkLoaded(); // 即使音频加载失败也继续游戏
+                });
 
                 runImg.onload = () => {
                     player.sprite.run = runImg;
@@ -839,9 +864,18 @@
             // 清空画布
             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-            // 绘制背景图片 - 固定不动，不随相机移动
+            // 绘制背景图片 - 根据设备类型不同处理
             if (backgroundImg) {
-                ctx.drawImage(backgroundImg, 0, 0, GAME_WIDTH, 700);
+                // 检测是否为移动设备（屏幕宽度小于768px）
+                const isMobile = window.innerWidth < 768;
+                
+                if (isMobile) {
+                    // 移动设备：保持图片原始尺寸，只显示左上角部分
+                    ctx.drawImage(backgroundImg, 0, 0, backgroundImg.width - 2000, backgroundImg.height - 1000);
+                } else {
+                    // 桌面设备：铺满整个屏幕
+                    ctx.drawImage(backgroundImg, 0, 0, GAME_WIDTH, GAME_HEIGHT);
+                }
             } else {
                 // 如果背景图片未加载，使用默认背景色
                 ctx.fillStyle = '#ffffff';
@@ -1128,6 +1162,16 @@
 
             // 开始跳跃时激活相机跟随
             camera.isFollowing = true;
+            
+            // 播放跳跃音效
+            if (jumpSound) {
+                // 重置音频位置以允许多次快速播放
+                jumpSound.currentTime = 0;
+                // 尝试播放音频，处理可能的浏览器自动播放限制
+                jumpSound.play().catch(error => {
+                    console.warn('Audio play prevented:', error);
+                });
+            }
         }
 
         // 更新弹退距离显示
@@ -1150,6 +1194,16 @@
             // 更新显示
             spikeHitCountDisplay.textContent = spikeHitCount;
             updateKnockbackDisplay();
+            
+            // 播放地刺碰撞音效
+            if (spikeSound) {
+                // 重置音频位置以允许多次快速播放
+                spikeSound.currentTime = 0;
+                // 尝试播放音频，处理可能的浏览器自动播放限制
+                spikeSound.play().catch(error => {
+                    console.warn('Spike audio play prevented:', error);
+                });
+            }
 
             // 开始弹退 - 确保只向左水平弹退，不向上弹起
             player.isKnockedBack = true;
