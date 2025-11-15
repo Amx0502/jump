@@ -79,6 +79,30 @@ app.get('/api/leaderboard', async (req, res) => {
     }
 });
 
+// API 端点：检查名称是否存在
+app.get('/api/check-name/:name', async (req, res) => {
+    try {
+        const { name } = req.params;
+        
+        if (!name) {
+            res.status(400).json({ error: '名称不能为空' });
+            return;
+        }
+        
+        // 不区分大小写查询，去除首尾空格
+        const trimmedName = name.trim();
+        const [rows] = await pool.query(
+            `SELECT id FROM leaderboard WHERE TRIM(name) = ?`, 
+            [trimmedName]
+        );
+        
+        res.json({ exists: rows.length > 0 });
+    } catch (error) {
+        console.error('检查名称失败:', error.message);
+        res.status(500).json({ error: '检查名称失败' });
+    }
+});
+
 // API 端点：保存分数
 app.post('/api/leaderboard', async (req, res) => {
     try {
@@ -89,14 +113,29 @@ app.post('/api/leaderboard', async (req, res) => {
             return;
         }
         
-        const date = new Date();
+        const trimmedName = name.trim();
         
-        const [result] = await pool.query(
-            `INSERT INTO leaderboard (name, score, date) VALUES (?, ?, ?)`, 
-            [name, score, date]
+        // 二次验证名称是否存在（防止并发冲突）
+        const [existingRows] = await pool.query(
+            `SELECT id FROM leaderboard WHERE TRIM(name) = ?`, 
+            [trimmedName]
         );
         
-        res.json({ id: result.insertId, name, score, date });
+        if (existingRows.length > 0) {
+            res.status(409).json({ error: '该名称已被使用，请使用其他名称' });
+            return;
+        }
+        
+        // 使用明确的当前时间，确保不使用未来时间
+        const date = new Date();
+        
+        // 确保使用当前时间而不是数据库服务器时间
+        const [result] = await pool.query(
+            `INSERT INTO leaderboard (name, score, date) VALUES (?, ?, NOW())`, 
+            [trimmedName, score]
+        );
+        
+        res.json({ id: result.insertId, name: trimmedName, score, date });
     } catch (error) {
         console.error('保存分数失败:', error.message);
         res.status(500).json({ error: '保存分数失败' });

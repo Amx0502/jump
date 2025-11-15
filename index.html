@@ -938,7 +938,7 @@
                                 
                                 spikes.push({
                                     x: spikeX,
-                                    y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT - 105
+                                    y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT - 166
                                 });
                             }
                             
@@ -975,7 +975,7 @@
                         // 生成单个地刺
                         spikes.push({
                             x: finalX,
-                            y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT - 105
+                            y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT - 166
                         });
                     }
                 }
@@ -1072,7 +1072,7 @@
                 if (!isTooClose) {
                     spikes.push({
                         x: finalX,
-                        y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT - 105
+                        y: GAME_HEIGHT - GROUND_HEIGHT - SPIKE_HEIGHT - 166
                     });
                 }
             }
@@ -1451,6 +1451,8 @@
         // 保存分数到排行榜（使用后端API）
         async function saveScoreToLeaderboard(name, score) {
             try {
+                // 去除首尾空格处理
+                const trimmedName = name.trim();
                 const response = await fetch('/api/leaderboard', {
                     method: 'POST',
                     headers: {
@@ -1637,8 +1639,23 @@
                 endJump();
             });
 
+            // 验证名称唯一性的函数
+            async function validateName(name) {
+                try {
+                    const response = await fetch(`/api/check-name/${encodeURIComponent(name)}`);
+                    if (!response.ok) {
+                        throw new Error('网络请求失败');
+                    }
+                    const data = await response.json();
+                    return data.exists;
+                } catch (error) {
+                    console.error('名称验证失败:', error);
+                    throw error;
+                }
+            }
+            
             // 按钮事件
-            startButton.addEventListener('click', () => {
+            startButton.addEventListener('click', async () => {
                 const playerNameInput = document.getElementById('playerName');
                 const nameError = document.getElementById('nameError');
                 const name = playerNameInput.value.trim();
@@ -1656,6 +1673,37 @@
                 
                 if (name.length < 2) {
                     nameError.textContent = '姓名至少需要2个字符';
+                    playerNameInput.classList.add('error-shake');
+                    setTimeout(() => {
+                        playerNameInput.classList.remove('error-shake');
+                    }, 500);
+                    return;
+                }
+                
+                // 特殊字符处理（可选：根据需求调整允许的字符）
+                const invalidCharsRegex = /[<>"'&]/;
+                if (invalidCharsRegex.test(name)) {
+                    nameError.textContent = '名称包含无效字符';
+                    playerNameInput.classList.add('error-shake');
+                    setTimeout(() => {
+                        playerNameInput.classList.remove('error-shake');
+                    }, 500);
+                    return;
+                }
+                
+                // 二次验证名称唯一性（防止并发冲突）
+                try {
+                    const exists = await validateName(name);
+                    if (exists) {
+                        nameError.textContent = '该名称已被使用，请使用其他名称';
+                        playerNameInput.classList.add('error-shake');
+                        setTimeout(() => {
+                            playerNameInput.classList.remove('error-shake');
+                        }, 500);
+                        return;
+                    }
+                } catch (error) {
+                    nameError.textContent = '验证失败，请稍后重试';
                     playerNameInput.classList.add('error-shake');
                     setTimeout(() => {
                         playerNameInput.classList.remove('error-shake');
@@ -1687,6 +1735,38 @@
                     startButton.click();
                 }
             });
+            
+            // 添加实时名称验证
+            document.getElementById('playerName').addEventListener('input', debounce(async (e) => {
+                const nameError = document.getElementById('nameError');
+                const name = e.target.value.trim();
+                
+                // 只有当名称长度大于1时才进行验证
+                if (name.length >= 2) {
+                    try {
+                        const exists = await validateName(name);
+                        if (exists) {
+                            nameError.textContent = '该名称已被使用，请使用其他名称';
+                        } else {
+                            nameError.textContent = '';
+                        }
+                    } catch (error) {
+                        console.error('名称验证失败:', error);
+                        // 网络错误时不显示错误信息，避免影响用户体验
+                    }
+                } else {
+                    nameError.textContent = '';
+                }
+            }, 300));
+            
+            // 防抖函数，避免频繁请求
+            function debounce(func, wait) {
+                let timeout;
+                return function(...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => func.apply(this, args), wait);
+                };
+            }
         }
 
         // 启动游戏
