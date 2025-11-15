@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>2D跳一跳小游戏</title>
+    <title>这只猫叫牛轧糖</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -258,6 +258,43 @@
             background: rgba(255, 255, 255, 0.9);
             border-left: 4px solid #4f46e5;
             font-weight: bold;
+        }
+        
+        /* 前三名特殊样式 */
+        .leaderboard-row.rank-first {
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        .leaderboard-row.rank-first td:first-child {
+            background: linear-gradient(to right, rgba(255, 242, 178, 0.9), rgba(255, 255, 255, 0.3) 70px, transparent);
+            color: #FF8C00;
+            font-weight: bold;
+            font-style: italic;
+            font-size: 20px;
+        }
+        
+        .leaderboard-row.rank-second {
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        .leaderboard-row.rank-second td:first-child {
+            background: linear-gradient(to right, rgba(173, 216, 230, 0.9), rgba(255, 255, 255, 0.3) 70px, transparent);
+            color: #0064FF;
+            font-weight: bold;
+            font-style: italic;
+            font-size: 20px;
+        }
+        
+        .leaderboard-row.rank-third {
+            background: rgba(255, 255, 255, 0.9);
+        }
+        
+        .leaderboard-row.rank-third td:first-child {
+            background: linear-gradient(to right, rgba(255, 221, 221, 0.9), rgba(255, 255, 255, 0.3) 70px, transparent);
+            color: #FF6B6B;
+            font-weight: bold;
+            font-style: italic;
+            font-size: 20px;
         }
         
         .leaderboard-loading {
@@ -1521,6 +1558,15 @@
                 leaderboard.forEach((entry, index) => {
                     const row = document.createElement('tr');
                     row.className = 'leaderboard-row';
+                    
+                    // 为前三名添加特殊类
+                    if (index === 0) {
+                        row.className += ' rank-first';
+                    } else if (index === 1) {
+                        row.className += ' rank-second';
+                    } else if (index === 2) {
+                        row.className += ' rank-third';
+                    }
                     
                     // 标记当前玩家
                     if (entry.name === currentPlayerName && entry.score === score) {
