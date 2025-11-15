@@ -337,7 +337,8 @@
         const MAX_TIME = 60; // 最大游戏时间（秒）
         let timeLeft = MAX_TIME;
         let gameStartTime = 0;
-        let backgroundImg = null;
+        let desktopBackgroundImg = null;
+        let mobileBackgroundImg = null;
         let floorImg = null;
         let spikeHitCount = 0; // 地刺碰撞次数
         
@@ -435,7 +436,8 @@
             return new Promise((resolve, reject) => {
                 const runImg = new Image();
                 const jumpImg = new Image();
-                const bgImg = new Image();
+                const desktopBgImg = new Image(); // 桌面端背景
+                const mobileBgImg = new Image(); // 移动端背景
                 const floorImg = new Image();
                 const spikeImg = new Image(); // 地刺图片
                 
@@ -449,12 +451,14 @@
 
                 runImg.src = './images/run.png';
                 jumpImg.src = './images/jump.png';
-                bgImg.src = './images/back.jpg';
+                // 根据设备类型设置不同的背景图片路径
+                desktopBgImg.src = './images/back.jpg'; // 桌面端背景
+                mobileBgImg.src = './images/back2.jpg'; // 移动端背景
                 floorImg.src = './images/floor.png';
                 spikeImg.src = './images/ci.png'; // 地刺图片路径
 
                 let resourcesLoaded = 0;
-                const totalResources = 7; // 5张图片 + 2个音频
+                const totalResources = 8; // 6张图片 + 2个音频
 
                 const checkLoaded = () => {
                     resourcesLoaded++;
@@ -488,8 +492,23 @@
                     checkLoaded();
                 };
 
-                bgImg.onload = () => {
-                    backgroundImg = bgImg;
+                desktopBgImg.onload = () => {
+                    desktopBackgroundImg = desktopBgImg;
+                    checkLoaded();
+                };
+                
+                desktopBgImg.onerror = () => {
+                    console.warn('Failed to load desktop background image');
+                    checkLoaded();
+                };
+                
+                mobileBgImg.onload = () => {
+                    mobileBackgroundImg = mobileBgImg;
+                    checkLoaded();
+                };
+                
+                mobileBgImg.onerror = () => {
+                    console.warn('Failed to load mobile background image');
                     checkLoaded();
                 };
 
@@ -505,10 +524,7 @@
 
                 runImg.onerror = reject;
                 jumpImg.onerror = reject;
-                bgImg.onerror = () => {
-                    console.warn('Failed to load background image, using default background');
-                    checkLoaded();
-                };
+
                 floorImg.onerror = () => {
                     console.warn('Failed to load floor image, using default color');
                     checkLoaded();
@@ -864,18 +880,15 @@
             // 清空画布
             ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-            // 绘制背景图片 - 根据设备类型不同处理
-            if (backgroundImg) {
-                // 检测是否为移动设备（屏幕宽度小于768px）
-                const isMobile = window.innerWidth < 768;
-                
-                if (isMobile) {
-                    // 移动设备：保持图片原始尺寸，只显示左上角部分
-                    ctx.drawImage(backgroundImg, 0, 0, backgroundImg.width - 2000, backgroundImg.height - 1000);
-                } else {
-                    // 桌面设备：铺满整个屏幕
-                    ctx.drawImage(backgroundImg, 0, 0, GAME_WIDTH, GAME_HEIGHT);
-                }
+            // 绘制背景图片 - 根据设备类型使用不同的背景图片
+            const isMobile = window.innerWidth < 768;
+            
+            if (isMobile && mobileBackgroundImg) {
+                // 移动端：使用移动端专用背景图片，覆盖全屏
+                ctx.drawImage(mobileBackgroundImg, 0, 0, GAME_WIDTH, GAME_HEIGHT);
+            } else if (!isMobile && desktopBackgroundImg) {
+                // 桌面端：使用桌面端专用背景图片，覆盖全屏
+                ctx.drawImage(desktopBackgroundImg, 0, 0, GAME_WIDTH, GAME_HEIGHT);
             } else {
                 // 如果背景图片未加载，使用默认背景色
                 ctx.fillStyle = '#ffffff';
