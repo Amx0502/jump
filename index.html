@@ -14,6 +14,22 @@
             margin: 0;
             padding: 0;
         }
+        
+        #playerName:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        #playerName.error-shake {
+            animation: shake 0.5s;
+            border-color: #ef4444;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
 
         .game-container {
             position: relative;
@@ -68,12 +84,43 @@
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+            margin-top: 20px;
         }
 
         .btn:hover {
             background-color: #4338ca;
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(79, 70, 229, 0.4);
+        }
+        
+        .input-group {
+            margin: 20px 0;
+            width: 100%;
+            max-width: 300px;
+        }
+        
+        #playerName {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            outline: none;
+            transition: border-color 0.3s ease;
+            box-sizing: border-box;
+        }
+        
+        #playerName:focus {
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .error-message {
+            color: #ef4444;
+            font-size: 14px;
+            margin-top: 10px;
+            min-height: 20px;
+            text-align: center;
         }
 
         .score-display {
@@ -125,6 +172,99 @@
             font-weight: bold;
             color: #4f46e5;
             margin-bottom: 20px;
+        }
+        
+        .leaderboard-section {
+            width: 100%;
+            max-width: 500px;
+            margin: 20px 0;
+        }
+        
+        .leaderboard-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #374151;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .leaderboard-container {
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 16px;
+        }
+        
+        .leaderboard-header {
+            background-color: #f3f4f6;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+        
+        .leaderboard-header th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: bold;
+            color: #6b7280;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .leaderboard-header th:first-child {
+            width: 20%;
+        }
+        
+        .leaderboard-header th:nth-child(2) {
+            width: 40%;
+        }
+        
+        .leaderboard-header th:last-child {
+            width: 40%;
+            text-align: right;
+        }
+        
+        .leaderboard-row {
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .leaderboard-row:hover {
+            background-color: #f9fafb;
+        }
+        
+        .leaderboard-row td {
+            padding: 12px 16px;
+        }
+        
+        .leaderboard-row td:last-child {
+            text-align: right;
+            font-weight: bold;
+            color: #4f46e5;
+        }
+        
+        .leaderboard-row.current-player {
+            background-color: #eff6ff;
+            border-left: 4px solid #4f46e5;
+        }
+        
+        .leaderboard-loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        
+        .leaderboard-empty {
+            text-align: center;
+            padding: 40px;
+            color: #9ca3af;
+            font-style: italic;
         }
 
         .instruction {
@@ -207,9 +347,35 @@
             .final-score {
                 font-size: 28px;
             }
+            
+            .leaderboard-section {
+                max-width: 90%;
+            }
+            
+            .leaderboard-title {
+                font-size: 20px;
+            }
+            
+            .leaderboard-table {
+                font-size: 14px;
+            }
+            
+            .leaderboard-header th,
+            .leaderboard-row td {
+                padding: 10px 12px;
+            }
 
             .btn {
                 padding: 10px 20px;
+                font-size: 16px;
+            }
+            
+            .input-group {
+                max-width: 90%;
+            }
+            
+            #playerName {
+                padding: 10px 14px;
                 font-size: 16px;
             }
 
@@ -252,14 +418,23 @@
         <!-- 开始界面 -->
         <div id="startScreen" class="game-overlay">
             <h1 class="game-title">跳一跳</h1>
-            <p class="instruction">点击并按住屏幕蓄力，松开后角色跳跃。躲避地刺，尽可能跳得更远获取高分！<br><span
-                    class="text-indigo-500 font-medium"></span></p>
+            <p class="instruction">点击并按住屏幕蓄力，松开后角色跳跃。躲避地刺，尽可能跳得更远获取高分！</p>
+            <div class="input-group">
+                <input type="text" id="playerName" placeholder="请输入您的姓名" maxlength="10" />
+            </div>
             <button id="startButton" class="btn">开始游戏</button>
+            <div id="nameError" class="error-message"></div>
         </div>
 
         <!-- 结束界面 -->
         <div id="endScreen" class="game-overlay hidden">
             <h2 class="final-score">最终得分: <span id="finalScore">0</span></h2>
+            <div class="leaderboard-section">
+                <h3 class="leaderboard-title">排行榜</h3>
+                <div id="leaderboardContainer" class="leaderboard-container">
+                    <div class="leaderboard-loading">加载中...</div>
+                </div>
+            </div>
             <button id="restartButton" class="btn">再来一次</button>
         </div>
 
@@ -332,9 +507,10 @@
         let gameStarted = false;
         let gameOver = false;
         let spikes = [];
+        let currentPlayerName = ''; // 当前玩家名称
         
         // 倒计时相关
-        const MAX_TIME = 60; // 最大游戏时间（秒）
+        const MAX_TIME = 5; // 最大游戏时间（秒）
         let timeLeft = MAX_TIME;
         let gameStartTime = 0;
         let desktopBackgroundImg = null;
@@ -568,7 +744,7 @@
 
             // 初始化玩家位置和变形状态
             player.x = 100;
-            player.y = GAME_HEIGHT - PLAYER_HEIGHT - 200;
+            player.y = GAME_HEIGHT - PLAYER_HEIGHT - 400;
             player.velocityX = 0;
             player.velocityY = 0;
             player.isOnGround = true;
@@ -1065,7 +1241,7 @@
 
             // 使用距离平方计算分数，使分数随距离增长得更快
             // 添加一个系数来调整分数增长速率
-            const distanceScore = Math.floor(distanceFromStart * distanceFromStart * 0.0001);
+            const distanceScore = Math.floor(distanceFromStart * distanceFromStart * 0.00008);
 
             if (distanceScore > score) {
                 score = distanceScore;
@@ -1229,10 +1405,162 @@
             comboCount = 0;
         }
 
+        // 保存分数到排行榜（使用后端API）
+        async function saveScoreToLeaderboard(name, score) {
+            try {
+                const response = await fetch('/api/leaderboard', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ name, score })
+                });
+                
+                if (!response.ok) {
+                    throw new Error('网络请求失败');
+                }
+                
+                await response.json();
+                return true;
+            } catch (error) {
+                console.error('保存排行榜失败:', error);
+                // 备份到localStorage
+                try {
+                    const backupLeaderboard = JSON.parse(localStorage.getItem('jumpGameLeaderboardBackup') || '[]');
+                    backupLeaderboard.push({ name, score, date: new Date().toISOString() });
+                    backupLeaderboard.sort((a, b) => b.score - a.score);
+                    if (backupLeaderboard.length > 10) {
+                        backupLeaderboard.splice(10);
+                    }
+                    localStorage.setItem('jumpGameLeaderboardBackup', JSON.stringify(backupLeaderboard));
+                } catch (backupError) {
+                    console.error('备份到localStorage失败:', backupError);
+                }
+                return false;
+            }
+        }
+        
+        // 获取排行榜数据（使用后端API）
+        async function getLeaderboard() {
+            try {
+                const response = await fetch('/api/leaderboard');
+                
+                if (!response.ok) {
+                    throw new Error('网络请求失败');
+                }
+                
+                return await response.json();
+            } catch (error) {
+                console.error('获取排行榜失败:', error);
+                // 从localStorage获取备份
+                try {
+                    const backupData = localStorage.getItem('jumpGameLeaderboardBackup');
+                    return backupData ? JSON.parse(backupData) : [];
+                } catch (backupError) {
+                    console.error('从localStorage获取备份失败:', backupError);
+                    return [];
+                }
+            }
+        }
+        
+        // 显示排行榜
+        async function displayLeaderboard() {
+            const container = document.getElementById('leaderboardContainer');
+            
+            // 显示加载状态
+            container.innerHTML = '<div class="leaderboard-loading">加载中...</div>';
+            
+            try {
+                const leaderboard = await getLeaderboard();
+                
+                // 清空容器
+                container.innerHTML = '';
+                
+                if (leaderboard.length === 0) {
+                    // 显示空排行榜提示
+                    const emptyElement = document.createElement('div');
+                    emptyElement.className = 'leaderboard-empty';
+                    emptyElement.textContent = '暂无排行数据';
+                    container.appendChild(emptyElement);
+                    return;
+                }
+                
+                // 创建表格
+                const table = document.createElement('table');
+                table.className = 'leaderboard-table';
+                
+                // 创建表头
+                const thead = document.createElement('thead');
+                thead.className = 'leaderboard-header';
+                const headerRow = document.createElement('tr');
+                
+                const rankHeader = document.createElement('th');
+                rankHeader.textContent = '排名';
+                
+                const nameHeader = document.createElement('th');
+                nameHeader.textContent = '玩家';
+                
+                const scoreHeader = document.createElement('th');
+                scoreHeader.textContent = '分数';
+                
+                headerRow.appendChild(rankHeader);
+                headerRow.appendChild(nameHeader);
+                headerRow.appendChild(scoreHeader);
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+                
+                // 创建表体
+                const tbody = document.createElement('tbody');
+                
+                leaderboard.forEach((entry, index) => {
+                    const row = document.createElement('tr');
+                    row.className = 'leaderboard-row';
+                    
+                    // 标记当前玩家
+                    if (entry.name === currentPlayerName && entry.score === score) {
+                        row.className += ' current-player';
+                    }
+                    
+                    // 排名单元格
+                    const rankCell = document.createElement('td');
+                    rankCell.textContent = (index + 1).toString();
+                    
+                    // 玩家名单元格
+                    const nameCell = document.createElement('td');
+                    nameCell.textContent = entry.name;
+                    
+                    // 分数单元格
+                    const scoreCell = document.createElement('td');
+                    scoreCell.textContent = entry.score.toString();
+                    
+                    row.appendChild(rankCell);
+                    row.appendChild(nameCell);
+                    row.appendChild(scoreCell);
+                    tbody.appendChild(row);
+                });
+                
+                table.appendChild(tbody);
+                container.appendChild(table);
+            } catch (error) {
+                console.error('显示排行榜失败:', error);
+                container.innerHTML = '<div class="leaderboard-error">加载排行榜失败</div>';
+            }
+        }
+        
         // 结束游戏
-        function endGame() {
+        async function endGame() {
             gameOver = true;
             finalScoreDisplay.textContent = score;
+            
+            // 保存分数到排行榜
+            if (currentPlayerName) {
+                await saveScoreToLeaderboard(currentPlayerName, score);
+            }
+            
+            // 显示排行榜
+            await displayLeaderboard();
+            
+            // 显示结束界面
             endScreen.classList.remove('hidden');
         }
 
@@ -1259,13 +1587,53 @@
 
             // 按钮事件
             startButton.addEventListener('click', () => {
+                const playerNameInput = document.getElementById('playerName');
+                const nameError = document.getElementById('nameError');
+                const name = playerNameInput.value.trim();
+                
+                // 验证姓名输入
+                if (!name) {
+                    nameError.textContent = '请输入您的姓名';
+                    // 为输入框添加震动动画效果
+                    playerNameInput.classList.add('error-shake');
+                    setTimeout(() => {
+                        playerNameInput.classList.remove('error-shake');
+                    }, 500);
+                    return;
+                }
+                
+                if (name.length < 2) {
+                    nameError.textContent = '姓名至少需要2个字符';
+                    playerNameInput.classList.add('error-shake');
+                    setTimeout(() => {
+                        playerNameInput.classList.remove('error-shake');
+                    }, 500);
+                    return;
+                }
+                
+                // 清除错误提示
+                nameError.textContent = '';
+                currentPlayerName = name;
+                
+                // 开始游戏
                 initGame();
                 updateGame();
             });
 
             restartButton.addEventListener('click', () => {
-                initGame();
-                updateGame();
+                // 重置到开始界面
+                endScreen.classList.add('hidden');
+                startScreen.classList.remove('hidden');
+                // 清空输入框
+                document.getElementById('playerName').value = '';
+                currentPlayerName = '';
+            });
+            
+            // 添加键盘事件处理
+            document.getElementById('playerName').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    startButton.click();
+                }
             });
         }
 
