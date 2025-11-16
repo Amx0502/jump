@@ -127,27 +127,55 @@ app.post('/api/leaderboard', async (req, res) => {
         
         const trimmedName = name.trim();
         
-        // 二次验证名称是否存在（防止并发冲突）
+        // 检查名称是否存在并获取当前分数
         const [existingRows] = await pool.query(
-            `SELECT id FROM leaderboard WHERE TRIM(name) = ?`, 
+            `SELECT id, score FROM leaderboard WHERE TRIM(name) = ?`, 
             [trimmedName]
         );
         
         if (existingRows.length > 0) {
-            res.status(409).json({ error: '该名称已被使用，请使用其他名称' });
-            return;
+            // 名称已存在，比较分数
+            const existingScore = existingRows[0].score;
+            const existingId = existingRows[0].id;
+            
+            if (score > existingScore) {
+                // 新分数更高，更新分数
+                await pool.query(
+                    `UPDATE leaderboard SET score = ?, date = NOW() WHERE id = ?`, 
+                    [score, existingId]
+                );
+                res.json({
+                    id: existingId,
+                    name: trimmedName,
+                    score: score,
+                    date: new Date(),
+                    updated: true
+                });
+            } else {
+                // 新分数不高于现有分数，不更新
+                res.json({
+                    id: existingId,
+                    name: trimmedName,
+                    score: existingScore,
+                    date: new Date(),
+                    updated: false
+                });
+            }
+        } else {
+            // 名称不存在，插入新记录
+            const [result] = await pool.query(
+                `INSERT INTO leaderboard (name, score, date) VALUES (?, ?, NOW())`, 
+                [trimmedName, score]
+            );
+            
+            res.json({
+                id: result.insertId,
+                name: trimmedName,
+                score: score,
+                date: new Date(),
+                updated: true
+            });
         }
-        
-        // 使用明确的当前时间，确保不使用未来时间
-        const date = new Date();
-        
-        // 确保使用当前时间而不是数据库服务器时间
-        const [result] = await pool.query(
-            `INSERT INTO leaderboard (name, score, date) VALUES (?, ?, NOW())`, 
-            [trimmedName, score]
-        );
-        
-        res.json({ id: result.insertId, name: trimmedName, score, date });
     } catch (error) {
         console.error('保存分数失败:', error.message);
         res.status(500).json({ error: '保存分数失败' });

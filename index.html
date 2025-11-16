@@ -4,7 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>这只猫叫牛轧糖</title>
+    <link rel="icon" type="image/png" href="./images/run.png">
+    <title>冒险牛轧糖</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -1448,7 +1449,7 @@
             comboCount = 0;
         }
 
-        // 保存分数到排行榜（使用后端API）
+        // 保存分数到排行榜（仅使用后端API，不进行本地备份）
         async function saveScoreToLeaderboard(name, score) {
             try {
                 // 去除首尾空格处理
@@ -1458,34 +1459,32 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ name, score })
+                    body: JSON.stringify({ name: trimmedName, score })
                 });
                 
                 if (!response.ok) {
                     throw new Error('网络请求失败');
                 }
                 
-                await response.json();
+                const result = await response.json();
+                
+                // 根据后端返回的更新状态显示相应提示
+                if (result && result.updated !== undefined) {
+                    if (result.updated) {
+                        console.log('分数已更新为:', result.score);
+                    } else {
+                        console.log('未更新分数，当前最高分仍为:', result.score);
+                    }
+                }
+                
                 return true;
             } catch (error) {
                 console.error('保存排行榜失败:', error);
-                // 备份到localStorage
-                try {
-                    const backupLeaderboard = JSON.parse(localStorage.getItem('jumpGameLeaderboardBackup') || '[]');
-                    backupLeaderboard.push({ name, score, date: new Date().toISOString() });
-                    backupLeaderboard.sort((a, b) => b.score - a.score);
-                    if (backupLeaderboard.length > 10) {
-                        backupLeaderboard.splice(10);
-                    }
-                    localStorage.setItem('jumpGameLeaderboardBackup', JSON.stringify(backupLeaderboard));
-                } catch (backupError) {
-                    console.error('备份到localStorage失败:', backupError);
-                }
                 return false;
             }
         }
         
-        // 获取排行榜数据（使用后端API）
+        // 获取排行榜数据（仅使用后端API，不从本地获取备份）
         async function getLeaderboard() {
             try {
                 const response = await fetch('/api/leaderboard');
@@ -1497,14 +1496,7 @@
                 return await response.json();
             } catch (error) {
                 console.error('获取排行榜失败:', error);
-                // 从localStorage获取备份
-                try {
-                    const backupData = localStorage.getItem('jumpGameLeaderboardBackup');
-                    return backupData ? JSON.parse(backupData) : [];
-                } catch (backupError) {
-                    console.error('从localStorage获取备份失败:', backupError);
-                    return [];
-                }
+                return [];
             }
         }
         
@@ -1691,24 +1683,20 @@
                     return;
                 }
                 
-                // 二次验证名称唯一性（防止并发冲突）
+                // 检查名称是否存在，但不阻止使用
                 try {
                     const exists = await validateName(name);
                     if (exists) {
-                        nameError.textContent = '该名称已被使用，请使用其他名称';
-                        playerNameInput.classList.add('error-shake');
+                        // 显示提示但不阻止游戏开始
+                        nameError.textContent = '该名称已存在，游戏结束后将更新最高分数';
+                        nameError.style.color = '#ffa500'; // 使用警告色
                         setTimeout(() => {
-                            playerNameInput.classList.remove('error-shake');
-                        }, 500);
-                        return;
+                            nameError.textContent = '';
+                        }, 3000);
                     }
                 } catch (error) {
-                    nameError.textContent = '验证失败，请稍后重试';
-                    playerNameInput.classList.add('error-shake');
-                    setTimeout(() => {
-                        playerNameInput.classList.remove('error-shake');
-                    }, 500);
-                    return;
+                    console.error('验证名称时出错:', error);
+                    // 验证失败不阻止游戏继续
                 }
                 
                 // 清除错误提示
@@ -1746,9 +1734,11 @@
                     try {
                         const exists = await validateName(name);
                         if (exists) {
-                            nameError.textContent = '该名称已被使用，请使用其他名称';
+                            nameError.textContent = '该名称已存在，游戏结束后将更新最高分数';
+                            nameError.style.color = '#ffa500'; // 使用警告色
                         } else {
                             nameError.textContent = '';
+                            nameError.style.color = ''; // 重置颜色
                         }
                     } catch (error) {
                         console.error('名称验证失败:', error);
