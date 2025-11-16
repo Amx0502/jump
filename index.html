@@ -1706,6 +1706,17 @@
                     return;
                 }
                 
+                // 检查名称是否纯数字
+                const isAllNumbersRegex = /^\d+$/;
+                if (isAllNumbersRegex.test(name)) {
+                    nameError.textContent = '名称不能全部是数字';
+                    playerNameInput.classList.add('error-shake');
+                    setTimeout(() => {
+                        playerNameInput.classList.remove('error-shake');
+                    }, 500);
+                    return;
+                }
+                
                 // 检查名称是否存在，但不阻止使用
                 try {
                     const exists = await validateName(name);
