@@ -53,7 +53,6 @@ async function initializeDatabase() {
             database: 'jump_game',
             // 确保所有连接参数都正确应用
             connectTimeout: 10000,
-            acquireTimeout: 10000,
             idleTimeout: 60000
         });
         
