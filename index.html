@@ -466,8 +466,22 @@
             <div class="input-group">
                 <input type="text" id="playerName" placeholder="请输入您的姓名" maxlength="10" />
             </div>
-            <button id="startButton" class="btn">开始游戏</button>
+            <div class="button-group">
+                <button id="startButton" class="btn">开始游戏</button>
+                <button id="viewLeaderboardButton" class="btn">查看排行榜</button>
+            </div>
             <div id="nameError" class="error-message"></div>
+        </div>
+        
+        <!-- 排行榜界面 -->
+        <div id="leaderboardScreen" class="game-overlay hidden">
+            <h1 class="game-title">排行榜</h1>
+            <div class="leaderboard-section">
+                <div id="standaloneLeaderboardContainer" class="leaderboard-container">
+                    <div class="leaderboard-loading">加载中...</div>
+                </div>
+            </div>
+            <button id="backToStartButton" class="btn">返回主界面</button>
         </div>
 
         <!-- 结束界面 -->
@@ -1501,14 +1515,16 @@
         }
         
         // 显示排行榜
-        async function displayLeaderboard() {
-            const container = document.getElementById('leaderboardContainer');
+        async function displayLeaderboard(leaderboardData = null, containerElement = null) {
+            // 使用传入的容器或默认容器
+            const container = containerElement || document.getElementById('leaderboardContainer');
             
             // 显示加载状态
             container.innerHTML = '<div class="leaderboard-loading">加载中...</div>';
             
             try {
-                const leaderboard = await getLeaderboard();
+                // 如果没有传入数据，则从API获取
+                const leaderboard = leaderboardData !== null ? leaderboardData : await getLeaderboard();
                 
                 // 清空容器
                 container.innerHTML = '';
@@ -1604,7 +1620,7 @@
             }
             
             // 显示排行榜
-            await displayLeaderboard();
+            await displayLeaderboard(null, document.getElementById('leaderboardContainer'));
             
             // 显示结束界面
             endScreen.classList.remove('hidden');
@@ -1722,6 +1738,32 @@
                 if (e.key === 'Enter') {
                     startButton.click();
                 }
+            });
+            
+            // 查看排行榜按钮点击事件
+            document.getElementById('viewLeaderboardButton').addEventListener('click', async () => {
+                // 隐藏开始界面
+                startScreen.classList.add('hidden');
+                // 显示排行榜界面
+                const leaderboardScreen = document.getElementById('leaderboardScreen');
+                leaderboardScreen.classList.remove('hidden');
+                
+                // 加载并显示排行榜数据
+                const standaloneLeaderboardContainer = document.getElementById('standaloneLeaderboardContainer');
+                try {
+                    await displayLeaderboard(null, standaloneLeaderboardContainer);
+                } catch (error) {
+                    console.error('加载排行榜失败:', error);
+                    standaloneLeaderboardContainer.innerHTML = '<div class="error-message">加载排行榜失败，请稍后再试</div>';
+                }
+            });
+            
+            // 返回主界面按钮点击事件
+            document.getElementById('backToStartButton').addEventListener('click', () => {
+                // 隐藏排行榜界面
+                document.getElementById('leaderboardScreen').classList.add('hidden');
+                // 显示开始界面
+                startScreen.classList.remove('hidden');
             });
             
             // 添加实时名称验证
