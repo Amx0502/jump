@@ -468,7 +468,7 @@
 
         <!-- 开始界面 -->
         <div id="startScreen" class="game-overlay">
-            <h1 class="game-title">跳一跳</h1>
+            <h1 class="game-title">冒险牛轧糖</h1>
             <p class="instruction">点击并按住屏幕蓄力，松开后角色跳跃。躲避地刺，尽可能跳得更远获取高分！</p>
             <div class="input-group">
                 <input type="text" id="playerName" placeholder="请输入您的姓名" maxlength="10" />
@@ -575,7 +575,7 @@
         let currentPlayerName = ''; // 当前玩家名称
         
         // 倒计时相关
-        const MAX_TIME = 5; // 最大游戏时间（秒）
+        const MAX_TIME = 60; // 最大游戏时间（秒）
         let timeLeft = MAX_TIME;
         let gameStartTime = 0;
         let desktopBackgroundImg = null;
@@ -585,6 +585,7 @@
         
         // 音频相关
         let jumpSound = null;
+        let meowSound = null;
 
         // 相机对象 - 视角跟随机制
         const camera = {
@@ -689,6 +690,10 @@
                 // 加载地刺碰撞音效
                 spikeSound = new Audio('./audio/spike.MP3');
                 spikeSound.volume = 0.5; // 设置音量
+                
+                // 加载按钮音效
+                meowSound = new Audio('./audio/meow.MP3');
+                meowSound.volume = 0.5; // 设置音量
 
                 runImg.src = './images/run.png';
                 jumpImg.src = './images/jump.png';
@@ -699,7 +704,7 @@
                 spikeImg.src = './images/ci.png'; // 地刺图片路径
 
                 let resourcesLoaded = 0;
-                const totalResources = 8; // 6张图片 + 2个音频
+                const totalResources = 9; // 6张图片 + 3个音频
 
                 const checkLoaded = () => {
                     resourcesLoaded++;
@@ -719,6 +724,13 @@
                 spikeSound.addEventListener('canplaythrough', checkLoaded, { once: true });
                 spikeSound.addEventListener('error', () => {
                     console.warn('Failed to load spike sound, continuing without audio');
+                    checkLoaded(); // 即使音频加载失败也继续游戏
+                });
+                
+                // 按钮音效加载处理
+                meowSound.addEventListener('canplaythrough', checkLoaded, { once: true });
+                meowSound.addEventListener('error', () => {
+                    console.warn('Failed to load meow sound, continuing without audio');
                     checkLoaded(); // 即使音频加载失败也继续游戏
                 });
 
@@ -1671,6 +1683,11 @@
             
             // 按钮事件
             startButton.addEventListener('click', async () => {
+                // 播放按钮音效
+                if (meowSound) {
+                    meowSound.currentTime = 0;
+                    meowSound.play().catch(e => console.warn('Failed to play meow sound:', e));
+                }
                 const playerNameInput = document.getElementById('playerName');
                 const nameError = document.getElementById('nameError');
                 const name = playerNameInput.value.trim();
@@ -1743,6 +1760,11 @@
             });
 
             restartButton.addEventListener('click', () => {
+                // 播放按钮音效
+                if (meowSound) {
+                    meowSound.currentTime = 0;
+                    meowSound.play().catch(e => console.warn('Failed to play meow sound:', e));
+                }
                 // 重置到开始界面
                 endScreen.classList.add('hidden');
                 startScreen.classList.remove('hidden');
@@ -1760,6 +1782,11 @@
             
             // 查看排行榜按钮点击事件
             document.getElementById('viewLeaderboardButton').addEventListener('click', async () => {
+                // 播放按钮音效
+                if (meowSound) {
+                    meowSound.currentTime = 0;
+                    meowSound.play().catch(e => console.warn('Failed to play meow sound:', e));
+                }
                 // 隐藏开始界面
                 startScreen.classList.add('hidden');
                 // 显示排行榜界面
@@ -1778,6 +1805,11 @@
             
             // 返回主界面按钮点击事件
             document.getElementById('backToStartButton').addEventListener('click', () => {
+                // 播放按钮音效
+                if (meowSound) {
+                    meowSound.currentTime = 0;
+                    meowSound.play().catch(e => console.warn('Failed to play meow sound:', e));
+                }
                 // 隐藏排行榜界面
                 document.getElementById('leaderboardScreen').classList.add('hidden');
                 // 显示开始界面
