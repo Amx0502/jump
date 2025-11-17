@@ -3,7 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="format-detection" content="telephone=no">
     <link rel="icon" type="image/png" href="./images/run.png">
     <title>冒险牛轧糖</title>
     <style>
@@ -12,8 +15,14 @@
             background-color: #000;
             overflow: hidden;
             touch-action: manipulation;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
             margin: 0;
             padding: 0;
+            position: fixed;
+            width: 100%;
+            height: 100%;
         }
         
         #playerName:focus {
@@ -52,6 +61,10 @@
             box-shadow: none;
             background-color: #ffffff;
             z-index: 1;
+            -webkit-tap-highlight-color: transparent;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
         }
 
         .game-overlay {
@@ -654,6 +667,14 @@
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = window.innerWidth < 768 ? 'medium' : 'high'; // 移动端降低质量提高性能
             
+            // iOS特定：确保Canvas正确渲染
+            if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                // iOS设备需要特殊处理
+                canvas.style.webkitTransform = 'translateZ(0)';
+                canvas.style.transform = 'translateZ(0)';
+                canvas.style.willChange = 'transform';
+            }
+            
             // 调整玩家位置以适应新尺寸
             if (player) {
                 player.y = GAME_HEIGHT - PLAYER_HEIGHT - GROUND_HEIGHT;
@@ -691,13 +712,25 @@
                 jumpSound = new Audio('./audio/jump.MP3');
                 jumpSound.volume = 0.5; // 设置音量
                 
+                // iOS特定：预加载音频
+                jumpSound.preload = 'auto';
+                jumpSound.load();
+                
                 // 加载地刺碰撞音效
                 spikeSound = new Audio('./audio/spike.MP3');
                 spikeSound.volume = 0.5; // 设置音量
                 
+                // iOS特定：预加载音频
+                spikeSound.preload = 'auto';
+                spikeSound.load();
+                
                 // 加载按钮音效
                 meowSound = new Audio('./audio/meow.MP3');
                 meowSound.volume = 0.5; // 设置音量
+                
+                // iOS特定：预加载音频
+                meowSound.preload = 'auto';
+                meowSound.load();
 
                 runImg.src = './images/run.png';
                 jumpImg.src = './images/jump.png';
@@ -1438,9 +1471,27 @@
                 // 重置音频位置以允许多次快速播放
                 jumpSound.currentTime = 0;
                 // 尝试播放音频，处理可能的浏览器自动播放限制
-                jumpSound.play().catch(error => {
-                    console.warn('Audio play prevented:', error);
-                });
+                const playPromise = jumpSound.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(_ => {
+                        // 音频播放成功
+                    }).catch(error => {
+                        // iOS特定：处理自动播放限制
+                        console.warn('Audio play prevented:', error);
+                        // 在iOS上，可以尝试在用户交互后播放音频
+                        if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                            // 创建一个静音的音频上下文来"解锁"音频播放
+                            const AudioContext = window.AudioContext || window.webkitAudioContext;
+                            if (AudioContext) {
+                                const audioContext = new AudioContext();
+                                if (audioContext.state === 'suspended') {
+                                    audioContext.resume();
+                                }
+                            }
+                        }
+                    });
+                }
             }
         }
 
@@ -1470,9 +1521,16 @@
                 // 重置音频位置以允许多次快速播放
                 spikeSound.currentTime = 0;
                 // 尝试播放音频，处理可能的浏览器自动播放限制
-                spikeSound.play().catch(error => {
-                    console.warn('Spike audio play prevented:', error);
-                });
+                const playPromise = spikeSound.play();
+                
+                if (playPromise !== undefined) {
+                    playPromise.then(_ => {
+                        // 音频播放成功
+                    }).catch(error => {
+                        // iOS特定：处理自动播放限制
+                        console.warn('Spike audio play prevented:', error);
+                    });
+                }
             }
 
             // 开始弹退 - 确保只向左水平弹退，不向上弹起
@@ -1685,14 +1743,29 @@
                     e.preventDefault();
                 }
                 startJump();
-            });
+            }, { passive: false });
 
             canvas.addEventListener('touchend', (e) => {
                 if (e.cancelable) {
                     e.preventDefault();
                 }
                 endJump();
-            });
+            }, { passive: false });
+
+            // iOS特定：处理touchcancel事件
+            canvas.addEventListener('touchcancel', (e) => {
+                if (e.cancelable) {
+                    e.preventDefault();
+                }
+                endJump();
+            }, { passive: false });
+
+            // iOS特定：处理touchmove事件
+            canvas.addEventListener('touchmove', (e) => {
+                if (e.cancelable) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
 
             // 验证名称唯一性的函数
             async function validateName(name) {
@@ -1714,7 +1787,14 @@
                 // 播放按钮音效
                 if (meowSound) {
                     meowSound.currentTime = 0;
-                    meowSound.play().catch(e => console.warn('Failed to play meow sound:', e));
+                    const playPromise = meowSound.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.catch(e => {
+                            // iOS特定：处理自动播放限制
+                            console.warn('Failed to play meow sound:', e);
+                        });
+                    }
                 }
                 const playerNameInput = document.getElementById('playerName');
                 const nameError = document.getElementById('nameError');
@@ -1791,7 +1871,14 @@
                 // 播放按钮音效
                 if (meowSound) {
                     meowSound.currentTime = 0;
-                    meowSound.play().catch(e => console.warn('Failed to play meow sound:', e));
+                    const playPromise = meowSound.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.catch(e => {
+                            // iOS特定：处理自动播放限制
+                            console.warn('Failed to play meow sound:', e);
+                        });
+                    }
                 }
                 // 重置到开始界面
                 endScreen.classList.add('hidden');
@@ -1813,7 +1900,14 @@
                 // 播放按钮音效
                 if (meowSound) {
                     meowSound.currentTime = 0;
-                    meowSound.play().catch(e => console.warn('Failed to play meow sound:', e));
+                    const playPromise = meowSound.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.catch(e => {
+                            // iOS特定：处理自动播放限制
+                            console.warn('Failed to play meow sound:', e);
+                        });
+                    }
                 }
                 // 隐藏开始界面
                 startScreen.classList.add('hidden');
@@ -1836,7 +1930,14 @@
                 // 播放按钮音效
                 if (meowSound) {
                     meowSound.currentTime = 0;
-                    meowSound.play().catch(e => console.warn('Failed to play meow sound:', e));
+                    const playPromise = meowSound.play();
+                    
+                    if (playPromise !== undefined) {
+                        playPromise.catch(e => {
+                            // iOS特定：处理自动播放限制
+                            console.warn('Failed to play meow sound:', e);
+                        });
+                    }
                 }
                 // 隐藏排行榜界面
                 document.getElementById('leaderboardScreen').classList.add('hidden');
@@ -1879,8 +1980,49 @@
             }
         }
 
+        // iOS特定：初始化音频上下文
+        function initAudioContext() {
+            // 检测iOS设备
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            
+            if (isIOS) {
+                // 创建一个全局的音频上下文
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                
+                if (AudioContext) {
+                    // 创建一个空的音频上下文来"解锁"音频播放
+                    const audioContext = new AudioContext();
+                    
+                    // 如果音频上下文被挂起，尝试恢复
+                    if (audioContext.state === 'suspended') {
+                        // 添加一个一次性事件监听器来恢复音频上下文
+                        const resumeAudio = () => {
+                            audioContext.resume().then(() => {
+                                console.log('Audio context resumed successfully');
+                            }).catch(error => {
+                                console.warn('Failed to resume audio context:', error);
+                            });
+                            
+                            // 移除事件监听器
+                            document.removeEventListener('touchstart', resumeAudio);
+                            document.removeEventListener('touchend', resumeAudio);
+                            document.removeEventListener('click', resumeAudio);
+                        };
+                        
+                        // 添加事件监听器
+                        document.addEventListener('touchstart', resumeAudio, { once: true });
+                        document.addEventListener('touchend', resumeAudio, { once: true });
+                        document.addEventListener('click', resumeAudio, { once: true });
+                    }
+                }
+            }
+        }
+
         // 启动游戏
         async function startGame() {
+            // iOS特定：初始化音频上下文
+            initAudioContext();
+            
             try {
                 await loadImages();
                 setupEventListeners();
