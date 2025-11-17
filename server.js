@@ -81,7 +81,7 @@ app.get('/api/leaderboard', async (req, res) => {
     try {
         const [rows] = await pool.query(`
             SELECT id, name, score, date FROM leaderboard 
-            ORDER BY score DESC LIMIT 10
+            ORDER BY score DESC LIMIT 100
         `);
         res.json(rows);
     } catch (error) {

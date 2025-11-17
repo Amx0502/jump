@@ -204,7 +204,7 @@
             /* opacity: 0.3; */
             border-radius: 16px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            max-height: 300px;
+            max-height: 500px;
             overflow-y: auto;
         }
         
@@ -407,6 +407,10 @@
                 font-size: 20px;
             }
             
+            .leaderboard-container {
+                max-height: 400px;
+            }
+            
             .leaderboard-table {
                 font-size: 14px;
             }
@@ -575,7 +579,7 @@
         let currentPlayerName = ''; // 当前玩家名称
         
         // 倒计时相关
-        const MAX_TIME = 60; // 最大游戏时间（秒）
+        const MAX_TIME = 5; // 最大游戏时间（秒）
         let timeLeft = MAX_TIME;
         let gameStartTime = 0;
         let desktopBackgroundImg = null;
@@ -1557,6 +1561,9 @@
                     return;
                 }
                 
+                // 创建文档片段，提高大量DOM操作的性能
+                const fragment = document.createDocumentFragment();
+                
                 // 创建表格
                 const table = document.createElement('table');
                 table.className = 'leaderboard-table';
@@ -1584,44 +1591,65 @@
                 // 创建表体
                 const tbody = document.createElement('tbody');
                 
-                leaderboard.forEach((entry, index) => {
-                    const row = document.createElement('tr');
-                    row.className = 'leaderboard-row';
-                    
-                    // 为前三名添加特殊类
-                    if (index === 0) {
-                        row.className += ' rank-first';
-                    } else if (index === 1) {
-                        row.className += ' rank-second';
-                    } else if (index === 2) {
-                        row.className += ' rank-third';
-                    }
-                    
-                    // 标记当前玩家
-                    if (entry.name === currentPlayerName && entry.score === score) {
-                        row.className += ' current-player';
-                    }
-                    
-                    // 排名单元格
-                    const rankCell = document.createElement('td');
-                    rankCell.textContent = (index + 1).toString();
-                    
-                    // 玩家名单元格
-                    const nameCell = document.createElement('td');
-                    nameCell.textContent = entry.name;
-                    
-                    // 分数单元格
-                    const scoreCell = document.createElement('td');
-                    scoreCell.textContent = entry.score.toString();
-                    
-                    row.appendChild(rankCell);
-                    row.appendChild(nameCell);
-                    row.appendChild(scoreCell);
-                    tbody.appendChild(row);
-                });
+                // 使用requestAnimationFrame分批渲染大量数据，提高性能
+                const batchSize = 20; // 每批渲染20条记录
+                let currentIndex = 0;
                 
-                table.appendChild(tbody);
-                container.appendChild(table);
+                function renderBatch() {
+                    const endIndex = Math.min(currentIndex + batchSize, leaderboard.length);
+                    
+                    for (let i = currentIndex; i < endIndex; i++) {
+                        const entry = leaderboard[i];
+                        const row = document.createElement('tr');
+                        row.className = 'leaderboard-row';
+                        
+                        // 为前三名添加特殊类
+                        if (i === 0) {
+                            row.className += ' rank-first';
+                        } else if (i === 1) {
+                            row.className += ' rank-second';
+                        } else if (i === 2) {
+                            row.className += ' rank-third';
+                        }
+                        
+                        // 标记当前玩家
+                        if (entry.name === currentPlayerName && entry.score === score) {
+                            row.className += ' current-player';
+                        }
+                        
+                        // 排名单元格
+                        const rankCell = document.createElement('td');
+                        rankCell.textContent = (i + 1).toString();
+                        
+                        // 玩家名单元格
+                        const nameCell = document.createElement('td');
+                        nameCell.textContent = entry.name;
+                        
+                        // 分数单元格
+                        const scoreCell = document.createElement('td');
+                        scoreCell.textContent = entry.score.toString();
+                        
+                        row.appendChild(rankCell);
+                        row.appendChild(nameCell);
+                        row.appendChild(scoreCell);
+                        tbody.appendChild(row);
+                    }
+                    
+                    currentIndex = endIndex;
+                    
+                    // 如果还有数据需要渲染，继续下一批
+                    if (currentIndex < leaderboard.length) {
+                        requestAnimationFrame(renderBatch);
+                    } else {
+                        // 所有数据渲染完成，添加到DOM
+                        table.appendChild(tbody);
+                        container.appendChild(table);
+                    }
+                }
+                
+                // 开始第一批渲染
+                renderBatch();
+                
             } catch (error) {
                 console.error('显示排行榜失败:', error);
                 container.innerHTML = '<div class="leaderboard-error">加载排行榜失败</div>';
